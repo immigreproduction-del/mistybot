@@ -1,6 +1,7 @@
 import discord
 
 from config import *
+from memory import get_user_memory
 
 
 async def send_log(client, title, description, color=discord.Color.dark_grey()):
@@ -55,17 +56,24 @@ async def log_spam_timeout(client, message):
 
 
 async def log_ai_response(client, message, is_misty=False):
-    user_type = "Misty" if is_misty else "Utilisateur normal"
+
+    data = get_user_memory(message.author.id)
+    score = data.get("behavior_score", 0)
+
+    clean_message = message.clean_content.replace("@Mistybot", "").strip()
+
+    user_type = "Misty" if is_misty else "Utilisateur"
 
     description = f"""
 **Utilisateur :** {message.author.display_name}
 **Username :** `{message.author.name}`
 **ID :** `{message.author.id}`
 **Type :** {user_type}
+**Score comportemental :** {score}
 **Salon :** {message.channel.mention}
 
 **Message :**
-{message.clean_content}
+{clean_message}
 """
 
     await send_log(
