@@ -59,7 +59,41 @@ MEMORY_SCORE_SPAM_TIMEOUT = 10
 ENABLE_LOGS = True
 
 # Remplace par l'ID de ton salon #misty-logs
-LOG_CHANNEL_ID = 1503370964715704452
+LOG_CHANNEL_ID = 123456789012345678
+
+
+# =========================
+# REACTIONS
+# =========================
+
+ENABLE_REACTIONS = True
+
+# Chances de réaction
+REACTION_CHANCE_NORMAL = 0.12
+REACTION_CHANCE_KEYWORD = 0.55
+REACTION_CHANCE_INSULT = 0.75
+REACTION_CHANCE_MISTY = 0.70
+
+REACTION_KEYWORDS = {
+    "bonne nuit": ["🌙", "👁️"],
+    "dodo": ["🌙"],
+    "peur": ["👁️"],
+    "bizarre": ["👁️", "⚠️"],
+    "wtf": ["⚠️", "👁️"],
+    "spam": ["⛓️", "👁️"],
+    "timeout": ["⛓️"],
+    "mistybot": ["👁️"],
+    "misty": ["🌙", "👁️"],
+    "mdr": ["😭"],
+    "mort": ["☠️"],
+    "silence": ["🌑", "👁️"],
+}
+
+NORMAL_REACTIONS = ["👁️", "🌙", "⚠️"]
+
+INSULT_REACTIONS = ["⛓️", "👁️", "☠️"]
+
+MISTY_REACTIONS = ["🌙", "🤍", "👁️"]
 
 
 # =========================
