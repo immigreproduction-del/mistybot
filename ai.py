@@ -4,7 +4,6 @@ import discord
 from openai import OpenAI
 
 from memory import get_memory_context
-from logs import log_ai_response
 
 client_ai = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
@@ -137,8 +136,6 @@ Tu ne dois jamais écrire de mention avec @.
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
 
     try:
-        await log_ai_response(client, message, is_misty)
-
         response = client_ai.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
