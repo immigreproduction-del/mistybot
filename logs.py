@@ -29,7 +29,7 @@ async def log_startup(client):
     await send_log(
         client,
         "🌙 Mistybot réveillé",
-        "Surveillance active. Le serveur est observé.",
+        "gopleen détraqué sexuel.",
         discord.Color.dark_purple()
     )
 
