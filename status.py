@@ -7,32 +7,45 @@ from config import *
 
 async def set_random_status(client):
 
-    status_text = random.choice(STATUSES)
+    activities = []
 
-    # Activités possibles
-    activity_types = [
+    # Statuts classiques
+    for text in STATUSES:
+        activities.append(
+            discord.CustomActivity(name=text)
+        )
 
-        discord.Game(name=status_text),
+    # Joue à
+    for game in GAMES:
+        activities.append(
+            discord.Game(name=game)
+        )
 
-        discord.Activity(
-            type=discord.ActivityType.watching,
-            name=status_text
-        ),
+    # Regarde
+    for watch in WATCHING:
+        activities.append(
+            discord.Activity(
+                type=discord.ActivityType.watching,
+                name=watch
+            )
+        )
 
-        discord.Activity(
-            type=discord.ActivityType.listening,
-            name=status_text
-        ),
-    ]
+    # Écoute
+    for listen in LISTENING:
+        activities.append(
+            discord.Activity(
+                type=discord.ActivityType.listening,
+                name=listen
+            )
+        )
 
-    # Statuts possibles
     discord_statuses = [
         discord.Status.online,
         discord.Status.idle,
         discord.Status.dnd
     ]
 
-    activity = random.choice(activity_types)
+    activity = random.choice(activities)
 
     status = random.choice(discord_statuses)
 
