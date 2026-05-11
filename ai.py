@@ -4,6 +4,7 @@ import discord
 from openai import OpenAI
 
 from memory import get_memory_context
+from logs import log_ai_response
 
 client_ai = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
@@ -81,7 +82,7 @@ user_cooldowns = {}
 global_cooldown = 0
 
 
-async def handle_ai(message: discord.Message, bot_user):
+async def handle_ai(message: discord.Message, bot_user, client):
     global global_cooldown
 
     if message.author.bot:
@@ -127,13 +128,17 @@ Tu peux utiliser son pseudo affiché parfois, mais pas systématiquement.
 Tu ne dois jamais écrire de mention avec @.
 """
 
-    if message.author.id == MISTY_USER_ID:
+    is_misty = message.author.id == MISTY_USER_ID
+
+    if is_misty:
         prompt = MISTY_PROMPT
     else:
         memory_context = get_memory_context(message.author.id)
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
 
     try:
+        await log_ai_response(client, message, is_misty)
+
         response = client_ai.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
