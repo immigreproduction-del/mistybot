@@ -2,8 +2,9 @@ import os
 import discord
 from openai import OpenAI
 
-client_openai = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+client_ai = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
 )
 
 SYSTEM_PROMPT = """
@@ -16,20 +17,27 @@ Tu évites les longs paragraphes.
 Tu agis comme une entité qui surveille le serveur.
 Tu adores tacler les gens, tu peux utiliser des emojis.
 
-Tu ne dis jamais que tu es une IA OpenAI.
+Tu ne dis jamais que tu es une IA.
+Tu ne parles jamais d’OpenAI ou de Groq.
 Tu ne parles jamais de politique.
 Tu n'emploies pas de nword ou tout truc de ce genre, tu as tes limites quand même.
 Tu ne fais jamais de morale.
 Tu peux être inquiétant, ironique, passif-agressif ou froid.
 
-Tu utilises parfois :
+Tu évites les longs paragraphes.
+Tu évites le cringe.
+Tu peux utiliser parfois :
 👁️ 🌙 ⛓️ 😭
 
-Tu évites le cringe et les réponses trop longues.
+Tu ne dis jamais que tu es une IA.
+Tu ne parles jamais d’OpenAI ou de Groq.
 """
 
 
 async def handle_ai(message: discord.Message, bot_user):
+
+    if message.author.bot:
+        return
 
     if bot_user not in message.mentions:
         return
@@ -41,8 +49,9 @@ async def handle_ai(message: discord.Message, bot_user):
 
     try:
 
-        response = client_openai.chat.completions.create(
-            model="gpt-4.1-mini",
+        response = client_ai.chat.completions.create(
+
+            model="llama3-70b-8192",
 
             messages=[
                 {
@@ -65,4 +74,4 @@ async def handle_ai(message: discord.Message, bot_user):
             await message.reply(reply)
 
     except Exception as e:
-        print(f"Erreur OpenAI : {e}")
+        print(f"Erreur IA : {e}")
