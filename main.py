@@ -3,6 +3,7 @@ import discord
 
 from antispam import handle_antispam
 from status import start_status_loop
+from ai import handle_ai
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -22,7 +23,10 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+
     await handle_antispam(message)
+
+    await handle_ai(message, client.user)
 
 
 client.run(TOKEN)
