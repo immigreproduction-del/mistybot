@@ -14,7 +14,6 @@ DM_SPAM_MESSAGE = "Doucement le spam 😭"
 # =========================
 
 ENABLE_MEMORY = True
-
 MEMORY_FILE = "memory.json"
 
 INSULT_WORDS = [
@@ -54,6 +53,16 @@ MEMORY_SCORE_SPAM_TIMEOUT = 10
 
 
 # =========================
+# LOGS
+# =========================
+
+ENABLE_LOGS = True
+
+# Remplace par l'ID de ton salon #misty-logs
+LOG_CHANNEL_ID = 123456789012345678
+
+
+# =========================
 # STATUS
 # =========================
 
@@ -65,7 +74,6 @@ STATUS_CHANGE_MINUTES = 10
 # =========================
 
 STATUSES = [
-
     "Je vois les choses avant qu’elles arrivent 👁️",
     "Quelqu’un devrait arrêter d’écrire 🩸",
     "Le serveur change quand personne ne regarde 🌑",
@@ -99,7 +107,6 @@ STATUSES = [
 # =========================
 
 GAMES = [
-
     "Le goulag des flooders ⛓️",
     "Le jugement dernier ☠️",
     "Qui sera le prochain ? 👁️",
@@ -123,7 +130,6 @@ GAMES = [
 # =========================
 
 WATCHING = [
-
     "les flooders tomber un par un ☠️",
     "les comportements devenir étranges 👁️",
     "les faux mouvements ⚠️",
@@ -146,7 +152,6 @@ WATCHING = [
 # =========================
 
 LISTENING = [
-
     "les spammeurs pleurer",
     "les touches Entrée souffrir ⌨️",
     "les excuses des flooders",
