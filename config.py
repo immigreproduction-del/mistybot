@@ -69,24 +69,49 @@ LOG_CHANNEL_ID = 123456789012345678
 ENABLE_REACTIONS = True
 
 # Chances de réaction
-REACTION_CHANCE_NORMAL = 0.12
+REACTION_CHANCE_NORMAL = 0.22
 REACTION_CHANCE_KEYWORD = 0.55
 REACTION_CHANCE_INSULT = 0.75
 REACTION_CHANCE_MISTY = 0.70
 
 REACTION_KEYWORDS = {
-    "bonne nuit": ["🌙", "👁️"],
-    "dodo": ["🌙"],
-    "peur": ["👁️"],
-    "bizarre": ["👁️", "⚠️"],
-    "wtf": ["⚠️", "👁️"],
-    "spam": ["⛓️", "👁️"],
-    "timeout": ["⛓️"],
-    "mistybot": ["👁️"],
-    "misty": ["🌙", "👁️"],
-    "mdr": ["😭"],
-    "mort": ["☠️"],
-    "silence": ["🌑", "👁️"],
+
+    "bonne nuit": ["🌙", "👁️", "🛌", "🌑", "💤"],
+    "dodo": ["🌙", "💤", "🛌"],
+    "peur": ["👁️", "⚠️", "☠️", "😶"],
+    "bizarre": ["👁️", "⚠️", "🌑", "🩸"],
+    "wtf": ["⚠️", "👁️", "☠️", "😭"],
+    "spam": ["⛓️", "👁️", "🚨", "☠️"],
+    "timeout": ["⛓️", "🚨", "☠️"],
+    "mistybot": ["👁️", "🌑", "📡"],
+    "misty": ["🌙", "👁️", "🤍", "✨"],
+    "mdr": ["😭", "💀", "☠️"],
+    "mort": ["☠️", "💀", "🪦"],
+    "silence": ["🌑", "👁️", "🩸"],
+    "help": ["⚠️", "👁️", "🚨"],
+    "aide": ["⚠️", "🚨", "👁️"],
+    "désolé": ["👁️", "🌑"],
+    "dsl": ["👁️", "🌑"],
+    "pardon": ["👁️", "🌙"],
+    "bonjour": ["👁️", "🌙", "📡"],
+    "salut": ["👁️", "🌙"],
+    "hello": ["👁️", "📡"],
+    "nuit": ["🌙", "🌑", "👁️"],
+    "rêve": ["🌙", "🌑", "👁️"],
+    "sombre": ["🌑", "☠️", "👁️"],
+    "creepy": ["👁️", "☠️", "🩸"],
+    "bug": ["⚠️", "📡", "🚨"],
+    "erreur": ["⚠️", "🚨", "📡"],
+    "rage": ["⛓️", "☠️", "😭"],
+    "calme": ["🌙", "🌑"],
+    "chelou": ["👁️", "⚠️", "🌑"],
+    "quoi": ["👁️", "⚠️"],
+    "hein": ["👁️", "😭"],
+    "ok": ["👁️", "🌑"],
+    "pk": ["👁️", "⚠️"],
+    "pourquoi": ["👁️", "🌑"],
+    "arrête": ["⛓️", "⚠️"],
+    "stop": ["⛓️", "⚠️", "☠️"],
 }
 
 NORMAL_REACTIONS = ["👁️", "🌙", "⚠️"]
