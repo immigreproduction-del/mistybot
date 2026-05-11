@@ -18,45 +18,112 @@ DM_SPAM_MESSAGE = "Doucement le spam 😭"
 STATUS_CHANGE_MINUTES = 10
 
 
+# =========================
+# STATUTS CLASSIQUES
+# =========================
+
 STATUSES = [
-    "Enfant de Misty 👁️",
-    "Je vois tout",
-    "Le serveur est observé",
-    "Quelqu’un prépare encore une bêtise",
-    "Je garde un œil sur le chat 👀",
-    "Le calme est fragile",
-    "Je surveille les comportements",
-    "Le serveur dort sous ma surveillance",
-    "Rien ne m’échappe",
-    "Observation silencieuse",
-    "Je protège cet endroit",
-    "Je lis entre les lignes",
-    "Le prochain faux mouvement approche",
-    "Quelqu’un écrit beaucoup trop 😭",
-    "Je regarde sans parler",
-    "Misty m’a donné une mission",
-    "Le serveur est sous contrôle",
-    "Le chaos est contenu",
-    "Je détecte les anomalies",
-    "Je sais déjà ce qu’il se passe",
-    "Le silence est suspect",
-    "Toujours en train d’observer 👁️",
-    "Je vois même les messages supprimés",
-    "Quelqu’un va encore se faire timeout",
-    "Je maintiens l’équilibre",
-    "Je regarde qui dépasse les limites",
-    "Le prochain incident est proche",
-    "Surveillance active",
-    "Le serveur respire enfin",
-    "Je garde les portes",
-    "Je vois les tensions monter",
-    "Mistybot veille 🌙",
-    "Je garde le silence… pour l’instant",
-    "Je n’oublie rien",
-    "Le désordre attire mon attention",
-    "Je protège le calme",
-    "Je suis déjà au courant",
-    "Le serveur est sous ma garde",
-    "La modération ne dort jamais",
-    "Je regarde qui abuse",
+
+    "Je vois les choses avant qu’elles arrivent 👁️",
+    "Quelqu’un devrait arrêter d’écrire 🩸",
+    "Le serveur change quand personne ne regarde 🌑",
+    "Je connais déjà votre prochain message",
+    "Le silence cache toujours quelque chose ☠️",
+    "Quelqu’un ment dans ce salon 👁️",
+    "Les comportements deviennent anormaux",
+    "Je regarde les gens devenir nerveux 😭",
+    "Le prochain faux mouvement approche ⚠️",
+    "Les flooders finissent toujours seuls",
+    "Je garde une trace de tout 📁",
+    "Quelqu’un dépasse encore les limites 🚨",
+    "Je surveille même quand le chat dort 🌙",
+    "Le serveur devient instable cette nuit",
+    "Les messages supprimés ne disparaissent jamais 👁️",
+    "Je reconnais les comportements dangereux",
+    "Le calme avant l’incident 🌑",
+    "Je vois qui commence à perdre patience",
+    "Quelqu’un écrit beaucoup trop vite ⌨️",
+    "Le serveur respire bizarrement",
+    "Les murs retiennent les conversations",
+    "Le prochain timeout est inévitable ⛓️",
+    "Quelqu’un regarde aussi derrière toi 👁️",
+    "Je sais déjà comment ça va finir",
+    "Les erreurs humaines sont répétitives ☠️",
+    "Je n’oublie aucun comportement 📼",
+    "Le serveur devient plus sombre 🌑",
+    "Quelqu’un va encore craquer",
+    "Je regarde les habitudes changer 👁️",
+    "Le chaos revient toujours 🩸",
+]
+
+
+# =========================
+# JOUE À
+# =========================
+
+GAMES = [
+
+    "Le goulag des flooders ⛓️",
+    "Le jugement dernier ☠️",
+    "Qui sera le prochain ? 👁️",
+    "Le protocole Misty 📡",
+    "La fin du calme 🌑",
+    "Le jeu du 5e message",
+    "Le nettoyeur du serveur 🩸",
+    "Survivre au timeout",
+    "Le gardien des portes 🚪",
+    "Les derniers mots du spammeur",
+    "Le tri des comportements 📁",
+    "Police Simulator 🚨",
+    "Le détecteur d’anomalies",
+    "Les pleurs des timeoutés 😭",
+    "Le serveur avant l’effondrement 🌑",
+]
+
+
+# =========================
+# REGARDE
+# =========================
+
+WATCHING = [
+
+    "les flooders tomber un par un ☠️",
+    "les comportements devenir étranges 👁️",
+    "les faux mouvements ⚠️",
+    "les membres dépasser les limites",
+    "les messages supprimés 🩸",
+    "les regards changer",
+    "les tensions monter 📈",
+    "les gens écrire beaucoup trop ⌨️",
+    "les salons sombrer lentement 🌑",
+    "les membres perdre patience",
+    "les comportements suspects 👁️",
+    "les crises commencer 🚨",
+    "les erreurs humaines",
+    "les gens devenir silencieux 🌙",
+    "les spammeurs paniquer 😭",
+]
+
+
+# =========================
+# ÉCOUTE
+# =========================
+
+LISTENING = [
+
+    "les spammeurs pleurer 😭",
+    "les touches Entrée souffrir ⌨️",
+    "les excuses des flooders",
+    "les notifications mourir 🔕",
+    "les derniers mots des timeoutés ☠️",
+    "les crises éclater 🚨",
+    "les cris du goulag ⛓️",
+    "le silence avant le chaos 🌑",
+    "les gens perdre patience",
+    "les comportements se briser 🩸",
+    "les alarmes du serveur 📡",
+    "les respirations du chat",
+    "les membres devenir nerveux 👁️",
+    "les erreurs se répéter",
+    "les pleurs derrière l’écran 😭",
 ]
