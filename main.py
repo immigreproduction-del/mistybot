@@ -6,12 +6,14 @@ from status import start_status_loop
 from ai import handle_ai
 from memory import observe_message
 from logs import log_startup
+from reactions import handle_reactions
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.reactions = True
 
 client = discord.Client(intents=intents)
 
@@ -29,6 +31,7 @@ async def on_message(message):
 
     await observe_message(message, client.user, client)
     await handle_antispam(message, client)
+    await handle_reactions(message)
     await handle_ai(message, client.user, client)
 
 
