@@ -3,12 +3,54 @@
 # =========================
 
 MESSAGE_LIMIT = 5
-
 TIME_WINDOW_SECONDS = 60
-
 TIMEOUT_MINUTES = 2
 
 DM_SPAM_MESSAGE = "Doucement le spam 😭"
+
+
+# =========================
+# MEMORY
+# =========================
+
+ENABLE_MEMORY = True
+
+MEMORY_FILE = "memory.json"
+
+INSULT_WORDS = [
+    "fdp",
+    "tg",
+    "ntm",
+    "connard",
+    "connasse",
+    "abruti",
+    "débile",
+    "debile",
+    "con",
+    "pute",
+    "batard",
+    "bâtard",
+    "merde",
+]
+
+AGGRESSIVE_WORDS = [
+    "ferme",
+    "tais-toi",
+    "ta gueule",
+    "dégage",
+    "degage",
+    "nique",
+    "rage",
+]
+
+CAPS_MIN_LENGTH = 12
+CAPS_RATIO = 0.75
+
+MEMORY_SCORE_INSULT = 4
+MEMORY_SCORE_AGGRESSIVE = 2
+MEMORY_SCORE_CAPS = 2
+MEMORY_SCORE_BOT_MENTION = 1
+MEMORY_SCORE_SPAM_TIMEOUT = 10
 
 
 # =========================
@@ -31,7 +73,7 @@ STATUSES = [
     "Le silence cache toujours quelque chose ☠️",
     "Quelqu’un ment dans ce salon 👁️",
     "Les comportements deviennent anormaux",
-    "Je regarde les gens devenir nerveux 😭",
+    "Je regarde les gens devenir nerveux",
     "Le prochain faux mouvement approche ⚠️",
     "Les flooders finissent toujours seuls",
     "Je garde une trace de tout 📁",
@@ -41,7 +83,6 @@ STATUSES = [
     "Les messages supprimés ne disparaissent jamais 👁️",
     "Je reconnais les comportements dangereux",
     "Le calme avant l’incident 🌑",
-    "Je vois qui commence à perdre patience",
     "Quelqu’un écrit beaucoup trop vite ⌨️",
     "Le serveur respire bizarrement",
     "Les murs retiennent les conversations",
@@ -50,10 +91,6 @@ STATUSES = [
     "Je sais déjà comment ça va finir",
     "Les erreurs humaines sont répétitives ☠️",
     "Je n’oublie aucun comportement 📼",
-    "Le serveur devient plus sombre 🌑",
-    "Quelqu’un va encore craquer",
-    "Je regarde les habitudes changer 👁️",
-    "Le chaos revient toujours 🩸",
 ]
 
 
@@ -76,7 +113,7 @@ GAMES = [
     "Le tri des comportements 📁",
     "Police Simulator 🚨",
     "Le détecteur d’anomalies",
-    "Les pleurs des timeoutés 😭",
+    "Les pleurs des timeoutés",
     "Le serveur avant l’effondrement 🌑",
 ]
 
@@ -101,7 +138,6 @@ WATCHING = [
     "les crises commencer 🚨",
     "les erreurs humaines",
     "les gens devenir silencieux 🌙",
-    "les spammeurs paniquer 😭",
 ]
 
 
@@ -111,7 +147,7 @@ WATCHING = [
 
 LISTENING = [
 
-    "les spammeurs pleurer 😭",
+    "les spammeurs pleurer",
     "les touches Entrée souffrir ⌨️",
     "les excuses des flooders",
     "les notifications mourir 🔕",
@@ -125,5 +161,4 @@ LISTENING = [
     "les respirations du chat",
     "les membres devenir nerveux 👁️",
     "les erreurs se répéter",
-    "les pleurs derrière l’écran 😭",
 ]
