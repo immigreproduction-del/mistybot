@@ -59,7 +59,7 @@ MEMORY_SCORE_SPAM_TIMEOUT = 10
 ENABLE_LOGS = True
 
 # Remplace par l'ID de ton salon #misty-logs
-LOG_CHANNEL_ID = 123456789012345678
+LOG_CHANNEL_ID = 1503371320677634158
 
 
 # =========================
