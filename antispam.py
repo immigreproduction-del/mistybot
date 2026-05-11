@@ -1,9 +1,7 @@
 from datetime import timedelta
 import discord
 
-MESSAGE_LIMIT = 5
-TIME_WINDOW_SECONDS = 60
-TIMEOUT_MINUTES = 2
+from config import *
 
 last_author_by_channel = {}
 streak_by_channel = {}
@@ -24,20 +22,20 @@ async def handle_antispam(message: discord.Message):
     previous_author = last_author_by_channel.get(channel_id)
     first_message_time = first_message_time_by_channel.get(channel_id)
 
-    # Quelqu’un d’autre parle = reset
+    # Si quelqu’un d’autre parle, compteur reset
     if previous_author != author_id:
         last_author_by_channel[channel_id] = author_id
         streak_by_channel[channel_id] = 1
         first_message_time_by_channel[channel_id] = now
         return
 
-    # Temps dépassé = reset
+    # Si plus de X secondes sont passées depuis le début de la série, compteur reset
     if first_message_time is None or (now - first_message_time).total_seconds() > TIME_WINDOW_SECONDS:
         streak_by_channel[channel_id] = 1
         first_message_time_by_channel[channel_id] = now
         return
 
-    # Même personne dans le délai = compteur +1
+    # Même personne, dans le délai : on augmente le compteur
     streak_by_channel[channel_id] = streak_by_channel.get(channel_id, 1) + 1
 
     if streak_by_channel[channel_id] >= MESSAGE_LIMIT:
@@ -47,7 +45,7 @@ async def handle_antispam(message: discord.Message):
             pass
 
         try:
-            await message.author.send("Doucement le spam 😭")
+            await message.author.send(DM_SPAM_MESSAGE)
         except:
             pass
 
