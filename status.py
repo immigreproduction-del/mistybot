@@ -6,22 +6,14 @@ from config import *
 
 
 async def set_random_status(client):
-
     activities = []
 
-    # Statuts classiques
     for text in STATUSES:
-        activities.append(
-            discord.CustomActivity(name=text)
-        )
+        activities.append(discord.CustomActivity(name=text))
 
-    # Joue à
     for game in GAMES:
-        activities.append(
-            discord.Game(name=game)
-        )
+        activities.append(discord.Game(name=game))
 
-    # Regarde
     for watch in WATCHING:
         activities.append(
             discord.Activity(
@@ -30,7 +22,6 @@ async def set_random_status(client):
             )
         )
 
-    # Écoute
     for listen in LISTENING:
         activities.append(
             discord.Activity(
@@ -46,7 +37,6 @@ async def set_random_status(client):
     ]
 
     activity = random.choice(activities)
-
     status = random.choice(discord_statuses)
 
     await client.change_presence(
@@ -56,7 +46,6 @@ async def set_random_status(client):
 
 
 def start_status_loop(client):
-
     @tasks.loop(minutes=STATUS_CHANGE_MINUTES)
     async def change_status():
         await set_random_status(client)
