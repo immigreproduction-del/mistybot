@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import discord
 
 from config import *
+from logs import log_memory_observation
 
 
 def load_memory():
@@ -23,21 +24,25 @@ def save_memory(memory):
         json.dump(memory, file, indent=4, ensure_ascii=False)
 
 
+def get_default_user_memory():
+    return {
+        "messages": 0,
+        "bot_mentions": 0,
+        "insults": 0,
+        "aggressive_messages": 0,
+        "caps_messages": 0,
+        "spam_timeouts": 0,
+        "behavior_score": 0,
+        "last_seen": None
+    }
+
+
 def get_user_memory(user_id):
     memory = load_memory()
     user_id = str(user_id)
 
     if user_id not in memory:
-        memory[user_id] = {
-            "messages": 0,
-            "bot_mentions": 0,
-            "insults": 0,
-            "aggressive_messages": 0,
-            "caps_messages": 0,
-            "spam_timeouts": 0,
-            "behavior_score": 0,
-            "last_seen": None
-        }
+        memory[user_id] = get_default_user_memory()
         save_memory(memory)
 
     return memory[user_id]
@@ -48,16 +53,7 @@ def update_user_memory(user_id, updates):
     user_id = str(user_id)
 
     if user_id not in memory:
-        memory[user_id] = {
-            "messages": 0,
-            "bot_mentions": 0,
-            "insults": 0,
-            "aggressive_messages": 0,
-            "caps_messages": 0,
-            "spam_timeouts": 0,
-            "behavior_score": 0,
-            "last_seen": None
-        }
+        memory[user_id] = get_default_user_memory()
 
     for key, value in updates.items():
         memory[user_id][key] = memory[user_id].get(key, 0) + value
@@ -84,7 +80,7 @@ def is_caps_abuse(content):
     return ratio >= CAPS_RATIO
 
 
-async def observe_message(message: discord.Message, bot_user):
+async def observe_message(message: discord.Message, bot_user, client):
     if not ENABLE_MEMORY:
         return
 
@@ -96,16 +92,14 @@ async def observe_message(message: discord.Message, bot_user):
     updates = {"messages": 1}
     behavior_points = 0
 
-    if bot_user in message.mentions:
-        updates["bot_mentions"] = 1
-        behavior_points += MEMORY_SCORE_BOT_MENTION
+    bot_is_mentioned = bot_user in message.mentions
 
     role_is_mentioned = any(
         role.name.lower() == bot_user.name.lower()
         for role in message.role_mentions
     )
 
-    if role_is_mentioned:
+    if bot_is_mentioned or role_is_mentioned:
         updates["bot_mentions"] = 1
         behavior_points += MEMORY_SCORE_BOT_MENTION
 
@@ -113,13 +107,34 @@ async def observe_message(message: discord.Message, bot_user):
         updates["insults"] = 1
         behavior_points += MEMORY_SCORE_INSULT
 
+        await log_memory_observation(
+            client,
+            message,
+            "Insulte détectée",
+            MEMORY_SCORE_INSULT
+        )
+
     if contains_words(content, AGGRESSIVE_WORDS):
         updates["aggressive_messages"] = 1
         behavior_points += MEMORY_SCORE_AGGRESSIVE
 
+        await log_memory_observation(
+            client,
+            message,
+            "Message agressif détecté",
+            MEMORY_SCORE_AGGRESSIVE
+        )
+
     if is_caps_abuse(content):
         updates["caps_messages"] = 1
         behavior_points += MEMORY_SCORE_CAPS
+
+        await log_memory_observation(
+            client,
+            message,
+            "Abus de majuscules détecté",
+            MEMORY_SCORE_CAPS
+        )
 
     if behavior_points > 0:
         updates["behavior_score"] = behavior_points
