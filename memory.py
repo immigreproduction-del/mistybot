@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime, timezone
 
 import discord
@@ -65,7 +66,14 @@ def update_user_memory(user_id, updates):
 
 def contains_words(content, words):
     content = content.lower()
-    return any(word in content for word in words)
+
+    for word in words:
+        pattern = r"\b" + re.escape(word.lower()) + r"\b"
+
+        if re.search(pattern, content):
+            return True
+
+    return False
 
 
 def is_caps_abuse(content):
