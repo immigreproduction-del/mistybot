@@ -3,13 +3,14 @@ import discord
 
 from config import *
 from memory import record_spam_timeout
+from logs import log_spam_timeout
 
 last_author_by_channel = {}
 streak_by_channel = {}
 first_message_time_by_channel = {}
 
 
-async def handle_antispam(message: discord.Message):
+async def handle_antispam(message: discord.Message, client):
     if message.author.bot or not message.guild:
         return
 
@@ -53,6 +54,8 @@ async def handle_antispam(message: discord.Message):
             )
 
             record_spam_timeout(message.author.id)
+
+            await log_spam_timeout(client, message)
 
         except Exception as e:
             print(f"Erreur timeout : {e}")
