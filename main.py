@@ -17,15 +17,14 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     print(f"Bot connecté : {client.user}")
-
     start_status_loop(client)
 
 
 @client.event
 async def on_message(message):
+    print(f"Message reçu : {message.author} -> {message.content}")
 
     await handle_antispam(message)
-
     await handle_ai(message, client.user)
 
 
