@@ -3,7 +3,7 @@
 # =========================
 
 MESSAGE_LIMIT = 5
-TIME_WINDOW_SECONDS = 60
+TIME_WINDOW_SECONDS = 120
 TIMEOUT_MINUTES = 2
 
 DM_SPAM_MESSAGE = "Doucement le spam 😭"
