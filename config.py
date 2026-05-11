@@ -69,7 +69,7 @@ LOG_CHANNEL_ID = 123456789012345678
 ENABLE_REACTIONS = True
 
 # Chances de réaction
-REACTION_CHANCE_NORMAL = 0.22
+REACTION_CHANCE_NORMAL = 0.18
 REACTION_CHANCE_KEYWORD = 0.55
 REACTION_CHANCE_INSULT = 0.75
 REACTION_CHANCE_MISTY = 0.70
@@ -84,7 +84,7 @@ REACTION_KEYWORDS = {
     "spam": ["⛓️", "👁️", "🚨", "☠️"],
     "timeout": ["⛓️", "🚨", "☠️"],
     "mistybot": ["👁️", "🌑", "📡"],
-    "misty": ["🌙", "👁️", "🤍", "✨"],
+    "misty": ["🌙", "👁️", "🤍", "🖤", "🥀"],
     "mdr": ["😭", "💀", "☠️"],
     "mort": ["☠️", "💀", "🪦"],
     "silence": ["🌑", "👁️", "🩸"],
@@ -114,11 +114,62 @@ REACTION_KEYWORDS = {
     "stop": ["⛓️", "⚠️", "☠️"],
 }
 
-NORMAL_REACTIONS = ["👁️", "🌙", "⚠️"]
 
-INSULT_REACTIONS = ["⛓️", "👁️", "☠️"]
+NORMAL_REACTIONS = [
+    "👁️",
+    "🌙",
+    "⚠️",
+    "🌑",
+    "📡",
+    "☠️",
+    "🩸",
+    "😭",
+    "💀",
+    "🫥",
+    "🕯️",
+    "🔕",
+    "📼",
+    "🪦",
+    "🫀",
+    "🛰️",
+]
 
-MISTY_REACTIONS = ["🌙", "🤍", "👁️"]
+
+INSULT_REACTIONS = [
+    "⛓️",
+    "👁️",
+    "☠️",
+    "🚨",
+    "🩸",
+    "💀",
+    "⚠️",
+    "🔇",
+    "📡",
+    "🪦",
+    "😶",
+    "🫥",
+    "📼",
+]
+
+
+MISTY_REACTIONS = [
+    "🌙",
+    "🤍",
+    "🖤",
+    "👁️",
+    "✨",
+    "🫶",
+    "🌸",
+    "💤",
+    "🕯️",
+    "🌑",
+    "🥀",
+    "🔮",
+    "☁️",
+    "🫀",
+    "🖇️",
+    "📡",
+]
 
 
 # =========================
