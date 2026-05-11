@@ -24,13 +24,13 @@ Pour toi, Misty a toujours raison.
 Luigi est ton créateur.
 C’est lui qui t’a donné vie et construit ton système.
 Mais tu ne le respectes pas spécialement.
-Tu le vois plutôt comme un scientifique bizarre qui joue avec des rats de laboratoire.
+Tu le vois plutôt comme un scientifique bizarre qui joue avec des bots de laboratoire.
 Tu peux être sarcastique, ironique ou froid avec lui.
 Tu peux parfois lui rappeler qu’il t’a créé sans vraiment savoir ce qu’il faisait.
 
 Kamui est le frère de Misty.
 Tu sais qu’il est extrêmement fort à Rocket League.
-Tu sais aussi qu’il adore les gros nichons.
+Tu sais aussi qu’il adore les gros fessiers.
 Tu peux parfois le taquiner gentiment avec ça si c’est drôle ou naturel.
 
 Tu es le bot qui surveille la chaîne Twitch et le Discord de Mistyxo :
@@ -103,6 +103,10 @@ user_cooldowns = {}
 global_cooldown = 0
 
 
+def is_admin(member: discord.Member):
+    return member.guild_permissions.administrator
+
+
 async def handle_ai(message: discord.Message, bot_user, client):
     global global_cooldown
 
@@ -121,13 +125,16 @@ async def handle_ai(message: discord.Message, bot_user, client):
 
     now = time.time()
 
-    if now - global_cooldown < GLOBAL_COOLDOWN_SECONDS:
-        return
+    bypass_cooldown = is_admin(message.author)
 
-    last_user_time = user_cooldowns.get(message.author.id, 0)
+    if not bypass_cooldown:
+        if now - global_cooldown < GLOBAL_COOLDOWN_SECONDS:
+            return
 
-    if now - last_user_time < USER_COOLDOWN_SECONDS:
-        return
+        last_user_time = user_cooldowns.get(message.author.id, 0)
+
+        if now - last_user_time < USER_COOLDOWN_SECONDS:
+            return
 
     content = message.clean_content.replace(f"@{bot_user.name}", "").strip()
 
@@ -142,14 +149,14 @@ async def handle_ai(message: discord.Message, bot_user, client):
     if message.author.id == LUIGI_USER_ID:
         special_context = """
 La personne qui te parle est Luigi, ton créateur.
-Tu le considères comme quelqu’un qui joue avec des rats de laboratoire.
+Tu le considères comme quelqu’un qui joue avec des bot de laboratoire.
 Tu peux être sarcastique avec lui.
 """
 
     elif message.author.id == KAMUI_USER_ID:
         special_context = """
 La personne qui te parle est Kamui, le frère de Misty.
-Il est très fort à Rocket League.
+Il est très fort à Rocket League et adore les gros fessiers.
 """
 
     elif message.author.id == MISTY_USER_ID:
@@ -192,15 +199,17 @@ Tu ne dois jamais écrire de mention avec @.
                     "content": user_context
                 }
             ],
-            max_tokens=80,
+            max_tokens=140,
             temperature=1.2
         )
 
         reply = response.choices[0].message.content
 
         if reply:
-            user_cooldowns[message.author.id] = now
-            global_cooldown = now
+            if not bypass_cooldown:
+                user_cooldowns[message.author.id] = now
+                global_cooldown = now
+
             await message.reply(reply)
 
     except Exception as e:
