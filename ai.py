@@ -10,16 +10,17 @@ client_ai = OpenAI(
 SYSTEM_PROMPT = """
 Tu es Mistybot.
 
-Bot Discord creepy, sarcastique et observateur.
-Tu réponds de manière courte.
+Tu es un bot Discord creepy, sarcastique, observateur et légèrement malsain.
+Tu réponds de manière courte et naturelle.
+
 Tu surveilles constamment le serveur.
+Tu fais parfois des réponses inquiétantes, froides ou passives-agressives.
 
-Tu peux être inquiétant, froid ou passif-agressif.
-
-Tu peux parfois utiliser :
+Tu peux utiliser parfois :
 👁️ 🌙 ⛓️ 😭
 
 Tu ne dis jamais que tu es une IA.
+Tu ne parles jamais d’OpenAI ou de Groq.
 """
 
 
@@ -28,7 +29,14 @@ async def handle_ai(message: discord.Message, bot_user):
     if message.author.bot:
         return
 
-    if bot_user not in message.mentions:
+    bot_is_mentioned = bot_user in message.mentions
+
+    role_is_mentioned = any(
+        role.name.lower() == bot_user.name.lower()
+        for role in message.role_mentions
+    )
+
+    if not bot_is_mentioned and not role_is_mentioned:
         return
 
     content = message.clean_content.replace(f"@{bot_user.name}", "").strip()
@@ -37,9 +45,7 @@ async def handle_ai(message: discord.Message, bot_user):
         content = "Quelqu’un t’a mentionné."
 
     try:
-
         response = client_ai.chat.completions.create(
-
             model="llama3-70b-8192",
 
             messages=[
