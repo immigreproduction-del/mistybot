@@ -4,6 +4,7 @@ import discord
 from antispam import handle_antispam
 from status import start_status_loop
 from ai import handle_ai
+from memory import observe_message
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -24,6 +25,7 @@ async def on_ready():
 async def on_message(message):
     print(f"Message reçu : {message.author} -> {message.content}")
 
+    await observe_message(message, client.user)
     await handle_antispam(message)
     await handle_ai(message, client.user)
 
