@@ -22,20 +22,20 @@ async def handle_antispam(message: discord.Message):
     previous_author = last_author_by_channel.get(channel_id)
     first_message_time = first_message_time_by_channel.get(channel_id)
 
-    # Si quelqu’un d’autre parle, compteur reset
+    # Quelqu’un d’autre parle = reset
     if previous_author != author_id:
         last_author_by_channel[channel_id] = author_id
         streak_by_channel[channel_id] = 1
         first_message_time_by_channel[channel_id] = now
         return
 
-    # Si plus de X secondes sont passées depuis le début de la série, compteur reset
+    # Temps dépassé = reset
     if first_message_time is None or (now - first_message_time).total_seconds() > TIME_WINDOW_SECONDS:
         streak_by_channel[channel_id] = 1
         first_message_time_by_channel[channel_id] = now
         return
 
-    # Même personne, dans le délai : on augmente le compteur
+    # Même personne dans le délai = compteur +1
     streak_by_channel[channel_id] = streak_by_channel.get(channel_id, 1) + 1
 
     if streak_by_channel[channel_id] >= MESSAGE_LIMIT:
@@ -51,7 +51,10 @@ async def handle_antispam(message: discord.Message):
 
         try:
             until = now + timedelta(minutes=TIMEOUT_MINUTES)
-            await message.author.timeout(until, reason="Spam de messages consécutifs")
+            await message.author.timeout(
+                until,
+                reason="Spam de messages consécutifs"
+            )
         except Exception as e:
             print(f"Erreur timeout : {e}")
 
