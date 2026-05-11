@@ -5,7 +5,6 @@ from antispam import handle_antispam
 from status import start_status_loop
 from ai import handle_ai
 from memory import observe_message
-from logs import log_startup
 from reactions import handle_reactions
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -22,7 +21,6 @@ client = discord.Client(intents=intents)
 async def on_ready():
     print(f"Bot connecté : {client.user}")
     start_status_loop(client)
-    await log_startup(client)
 
 
 @client.event
