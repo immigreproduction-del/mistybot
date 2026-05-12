@@ -1,3 +1,19 @@
+import os
+
+
+def get_env_int(name, default):
+    value = os.getenv(name)
+
+    if not value:
+        return default
+
+    try:
+        return int(value)
+    except ValueError:
+        print(f"Variable {name} invalide : {value}")
+        return default
+
+
 # =========================
 # ANTI SPAM
 # =========================
@@ -7,6 +23,42 @@ TIME_WINDOW_SECONDS = 180
 TIMEOUT_MINUTES = 2
 
 DM_SPAM_MESSAGE = "Doucement le spam 😭"
+
+
+# =========================
+# SECURITY
+# =========================
+
+ENABLE_SECURITY = True
+
+INVITE_SPAM_WINDOW_SECONDS = 45
+INVITE_SPAM_MESSAGE_LIMIT = 3
+INVITE_SPAM_CHANNEL_LIMIT = 2
+INVITE_SPAM_TIMEOUT_MINUTES = 10
+
+SUSPICIOUS_LINK_SHORTENERS = [
+    "bit.ly",
+    "tinyurl.com",
+    "t.co",
+    "is.gd",
+    "cutt.ly",
+    "rebrand.ly",
+]
+
+SUSPICIOUS_LINK_WORDS = [
+    "free",
+    "nitro",
+    "freenitro",
+    "gift",
+    "freegift",
+    "nitrogift",
+    "airdrop",
+    "claim",
+    "claimgift",
+    "steam",
+    "wallet",
+    "crypto",
+]
 
 
 # =========================
@@ -58,8 +110,8 @@ MEMORY_SCORE_SPAM_TIMEOUT = 10
 
 ENABLE_LOGS = True
 
-# Remplace par l'ID de ton salon #misty-logs
-LOG_CHANNEL_ID = 1503370964715704452
+# Salon logs prod par defaut. En local, LOCAL_LOG_CHANNEL_ID peut le remplacer.
+LOG_CHANNEL_ID = get_env_int("LOCAL_LOG_CHANNEL_ID", 1503370964715704452)
 
 
 # =========================
@@ -67,6 +119,36 @@ LOG_CHANNEL_ID = 1503370964715704452
 # =========================
 
 ENABLE_REACTIONS = True
+
+
+# =========================
+# AMBIANCE
+# =========================
+
+ENABLE_AMBIANCE = True
+
+AMBIANCE_WINDOW_SECONDS = 300
+AMBIANCE_AGITATED_MESSAGES = 45
+AMBIANCE_NOISY_MESSAGES = 80
+AMBIANCE_SUSPECT_SCORE = 8
+
+MICRO_OBSERVATION_CHANCE = 0.008
+MICRO_OBSERVATION_ACTIVE_CHANCE = 0.018
+MICRO_OBSERVATION_MIN_MESSAGES = 12
+MICRO_OBSERVATION_GLOBAL_COOLDOWN_SECONDS = 1800
+MICRO_OBSERVATION_CHANNEL_COOLDOWN_SECONDS = 3600
+MICRO_OBSERVATION_USER_COOLDOWN_SECONDS = 7200
+
+BUSY_CHAT_WINDOW_SECONDS = 600
+BUSY_CHAT_MIN_MESSAGES = 15
+BUSY_CHAT_MAX_MESSAGES = 20
+BUSY_CHAT_CHANCE = 1 / 3
+BUSY_CHAT_COOLDOWN_SECONDS = 1800
+
+CONSECUTIVE_TALK_MIN_MESSAGES = 3
+CONSECUTIVE_TALK_MAX_MESSAGES = 4
+CONSECUTIVE_TALK_CHANCE = 1 / 4
+CONSECUTIVE_TALK_COOLDOWN_SECONDS = 1800
 
 # Chances de réaction
 REACTION_CHANCE_NORMAL = 0.02

@@ -7,6 +7,7 @@ import discord
 
 from config import *
 from logs import log_memory_observation
+from text_utils import contains_loose_any
 
 
 def load_memory():
@@ -65,15 +66,7 @@ def update_user_memory(user_id, updates):
 
 
 def contains_words(content, words):
-    content = content.lower()
-
-    for word in words:
-        pattern = r"\b" + re.escape(word.lower()) + r"\b"
-
-        if re.search(pattern, content):
-            return True
-
-    return False
+    return contains_loose_any(content, words)
 
 
 def is_caps_abuse(content):

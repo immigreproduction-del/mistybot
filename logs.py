@@ -54,6 +54,52 @@ async def log_spam_timeout(client, message):
     )
 
 
+async def log_security_action(client, message, reason, action):
+    description = f"""
+**Utilisateur :** {message.author.display_name}
+**Username :** `{message.author.name}`
+**ID :** `{message.author.id}`
+**Salon :** {message.channel.mention}
+
+**Raison :** {reason}
+**Action :** {action}
+
+**Message :**
+{message.clean_content}
+"""
+
+    await send_log(
+        client,
+        "Alerte securite",
+        description,
+        discord.Color.red()
+    )
+
+
+async def log_security_raid(client, message, reason, channels_count, messages_count):
+    description = f"""
+**Utilisateur :** {message.author.display_name}
+**Username :** `{message.author.name}`
+**ID :** `{message.author.id}`
+
+**Raison :** {reason}
+**Messages suspects :** {messages_count}
+**Salons touches :** {channels_count}
+**Sanction :** timeout {INVITE_SPAM_TIMEOUT_MINUTES} minutes
+
+**Dernier salon :** {message.channel.mention}
+**Dernier message :**
+{message.clean_content}
+"""
+
+    await send_log(
+        client,
+        "Raid liens suspect",
+        description,
+        discord.Color.dark_red()
+    )
+
+
 async def log_ai_response(client, message, is_misty=False):
     clean_message = message.clean_content.replace("@Mistybot", "").strip()
 

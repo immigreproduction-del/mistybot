@@ -2,6 +2,7 @@ import random
 import discord
 
 from config import *
+from text_utils import contains_loose_any, contains_loose_word
 
 MISTY_USER_ID = 474146761091579921
 
@@ -11,8 +12,7 @@ def chance(probability):
 
 
 def contains_any(content, words):
-    content = content.lower()
-    return any(word in content for word in words)
+    return contains_loose_any(content, words)
 
 
 async def safe_react(message: discord.Message, emoji):
@@ -32,7 +32,7 @@ async def handle_reactions(message: discord.Message):
     if not message.guild:
         return
 
-    content = message.content.lower()
+    content = message.content
 
     # Réaction spéciale pour Misty
     if message.author.id == MISTY_USER_ID:
@@ -48,7 +48,7 @@ async def handle_reactions(message: discord.Message):
 
     # Réactions par mots-clés
     for keyword, emojis in REACTION_KEYWORDS.items():
-        if keyword in content:
+        if contains_loose_word(content, keyword):
             if chance(REACTION_CHANCE_KEYWORD):
                 await safe_react(message, random.choice(emojis))
             return

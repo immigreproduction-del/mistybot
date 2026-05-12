@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+run-local.ps1
+start-bot.bat
+simulate.bat

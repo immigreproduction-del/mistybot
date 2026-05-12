@@ -2,11 +2,13 @@ import random
 import discord
 from discord.ext import tasks
 
+from ambiance import get_global_mood
 from config import *
 
 
 async def set_random_status(client):
     activities = []
+    mood = get_global_mood()
 
     for text in STATUSES:
         activities.append(discord.CustomActivity(name=text))
@@ -29,6 +31,33 @@ async def set_random_status(client):
                 name=listen
             )
         )
+
+    if mood == "suspect":
+        activities.extend([
+            discord.CustomActivity(name="Quelque chose gratte dans les logs"),
+            discord.Activity(
+                type=discord.ActivityType.watching,
+                name="les comportements suspects"
+            ),
+        ])
+    elif mood == "bruyant":
+        activities.extend([
+            discord.CustomActivity(name="Le bruit laisse des traces"),
+            discord.Activity(
+                type=discord.ActivityType.listening,
+                name="le serveur parler trop fort"
+            ),
+        ])
+    elif mood == "agite":
+        activities.extend([
+            discord.CustomActivity(name="Le serveur bouge trop vite"),
+            discord.Activity(
+                type=discord.ActivityType.watching,
+                name="les habitudes revenir"
+            ),
+        ])
+    else:
+        activities.append(discord.CustomActivity(name="Le calme est provisoire"))
 
     discord_statuses = [
         discord.Status.online,

@@ -3,12 +3,27 @@ import time
 import discord
 from openai import OpenAI
 
+from ambiance import get_global_mood
 from memory import get_memory_context
 
-client_ai = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
-)
+client_ai = None
+
+
+def get_ai_client():
+    global client_ai
+
+    if client_ai is None:
+        api_key = os.getenv("GROQ_API_KEY")
+
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY manquante")
+
+        client_ai = OpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+
+    return client_ai
 
 MISTY_USER_ID = 474146761091579921
 LUIGI_USER_ID = 675280844390400000
@@ -102,6 +117,12 @@ GLOBAL_COOLDOWN_SECONDS = 30
 user_cooldowns = {}
 global_cooldown = 0
 
+AI_FALLBACK_REPLIES = [
+    "Pas maintenant.",
+    "Quelque chose bloque.",
+    "Je reviens.",
+]
+
 
 def is_admin(member: discord.Member):
     return member.guild_permissions.administrator
@@ -143,6 +164,7 @@ async def handle_ai(message: discord.Message, bot_user, client):
 
     display_name = message.author.display_name
     username = message.author.name
+    mood = get_global_mood()
 
     special_context = ""
 
@@ -168,6 +190,7 @@ La personne qui te parle est Misty, ta maman.
 Informations sur la personne qui te parle :
 - Pseudo affiché sur le serveur : {display_name}
 - Username Discord : {username}
+- Humeur actuelle du serveur : {mood}
 
 {special_context}
 
@@ -187,7 +210,7 @@ Tu ne dois jamais écrire de mention avec @.
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
 
     try:
-        response = client_ai.chat.completions.create(
+        response = get_ai_client().chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {
@@ -214,3 +237,8 @@ Tu ne dois jamais écrire de mention avec @.
 
     except Exception as e:
         print(f"Erreur IA : {e}")
+
+        try:
+            await message.reply(AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)])
+        except Exception as reply_error:
+            print(f"Erreur fallback IA : {reply_error}")
