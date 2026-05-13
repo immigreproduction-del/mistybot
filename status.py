@@ -1,14 +1,12 @@
+import asyncio
 import random
 import discord
-from discord.ext import tasks
 
-from ambiance import get_global_mood
 from config import *
 
 
 async def set_random_status(client):
     activities = []
-    mood = get_global_mood()
 
     for text in STATUSES:
         activities.append(discord.CustomActivity(name=text))
@@ -32,33 +30,6 @@ async def set_random_status(client):
             )
         )
 
-    if mood == "suspect":
-        activities.extend([
-            discord.CustomActivity(name="Quelque chose gratte dans les logs"),
-            discord.Activity(
-                type=discord.ActivityType.watching,
-                name="les comportements suspects"
-            ),
-        ])
-    elif mood == "bruyant":
-        activities.extend([
-            discord.CustomActivity(name="Le bruit laisse des traces"),
-            discord.Activity(
-                type=discord.ActivityType.listening,
-                name="le serveur parler trop fort"
-            ),
-        ])
-    elif mood == "agite":
-        activities.extend([
-            discord.CustomActivity(name="Le serveur bouge trop vite"),
-            discord.Activity(
-                type=discord.ActivityType.watching,
-                name="les habitudes revenir"
-            ),
-        ])
-    else:
-        activities.append(discord.CustomActivity(name="Le calme est provisoire"))
-
     discord_statuses = [
         discord.Status.online,
         discord.Status.idle,
@@ -75,12 +46,16 @@ async def set_random_status(client):
 
 
 def start_status_loop(client):
-    @tasks.loop(minutes=STATUS_CHANGE_MINUTES)
     async def change_status():
-        await set_random_status(client)
-
-    @change_status.before_loop
-    async def before_change_status():
         await client.wait_until_ready()
 
-    change_status.start()
+        while not client.is_closed():
+            await set_random_status(client)
+
+            delay_minutes = random.randint(
+                STATUS_CHANGE_MINUTES_MIN,
+                STATUS_CHANGE_MINUTES_MAX
+            )
+            await asyncio.sleep(delay_minutes * 60)
+
+    client.loop.create_task(change_status())

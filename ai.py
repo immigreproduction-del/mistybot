@@ -4,6 +4,7 @@ import discord
 from openai import OpenAI
 
 from ambiance import get_global_mood
+from config import *
 from memory import get_memory_context
 
 client_ai = None
@@ -111,9 +112,6 @@ Tu ne parles jamais d'OpenAI ou de Groq.
 Tu ne parles jamais de politique.
 """
 
-USER_COOLDOWN_SECONDS = 60
-GLOBAL_COOLDOWN_SECONDS = 30
-
 user_cooldowns = {}
 global_cooldown = 0
 
@@ -126,6 +124,10 @@ AI_FALLBACK_REPLIES = [
 
 def is_admin(member: discord.Member):
     return member.guild_permissions.administrator
+
+
+def can_bypass_ai_cooldown(member: discord.Member):
+    return is_admin(member) or member.id in AI_COOLDOWN_BYPASS_USER_IDS
 
 
 async def handle_ai(message: discord.Message, bot_user, client):
@@ -146,7 +148,7 @@ async def handle_ai(message: discord.Message, bot_user, client):
 
     now = time.time()
 
-    bypass_cooldown = is_admin(message.author)
+    bypass_cooldown = can_bypass_ai_cooldown(message.author)
 
     if not bypass_cooldown:
         if now - global_cooldown < GLOBAL_COOLDOWN_SECONDS:
@@ -171,14 +173,14 @@ async def handle_ai(message: discord.Message, bot_user, client):
     if message.author.id == LUIGI_USER_ID:
         special_context = """
 La personne qui te parle est Luigi, ton créateur.
-Tu le considères comme quelqu’un qui joue avec des bot de laboratoire.
-Tu peux être sarcastique avec lui.
+
+Tu peux être sarcastique et taquin avec lui.
 """
 
     elif message.author.id == KAMUI_USER_ID:
         special_context = """
 La personne qui te parle est Kamui, le frère de Misty.
-Il est très fort à Rocket League et adore les gros fessiers.
+Tu peux être sarcastique et taquin avec lui.
 """
 
     elif message.author.id == MISTY_USER_ID:

@@ -105,6 +105,18 @@ MEMORY_SCORE_SPAM_TIMEOUT = 10
 
 
 # =========================
+# AI
+# =========================
+
+USER_COOLDOWN_SECONDS = 60
+GLOBAL_COOLDOWN_SECONDS = 30
+
+AI_COOLDOWN_BYPASS_USER_IDS = [
+    226806023782924289,
+]
+
+
+# =========================
 # LOGS
 # =========================
 
@@ -258,7 +270,8 @@ MISTY_REACTIONS = [
 # STATUS
 # =========================
 
-STATUS_CHANGE_MINUTES = 10
+STATUS_CHANGE_MINUTES_MIN = 60
+STATUS_CHANGE_MINUTES_MAX = 300
 
 
 # =========================
@@ -266,31 +279,9 @@ STATUS_CHANGE_MINUTES = 10
 # =========================
 
 STATUSES = [
-    "Je vois les choses avant qu’elles arrivent 👁️",
-    "Quelqu’un devrait arrêter d’écrire 🩸",
-    "Le serveur change quand personne ne regarde 🌑",
-    "Je connais déjà votre prochain message",
-    "Le silence cache toujours quelque chose ☠️",
-    "Quelqu’un ment dans ce salon 👁️",
-    "Les comportements deviennent anormaux",
-    "Je regarde les gens devenir nerveux",
-    "Le prochain faux mouvement approche ⚠️",
-    "Les flooders finissent toujours seuls",
-    "Je garde une trace de tout 📁",
-    "Quelqu’un dépasse encore les limites 🚨",
-    "Je surveille même quand le chat dort 🌙",
-    "Le serveur devient instable cette nuit",
-    "Les messages supprimés ne disparaissent jamais 👁️",
-    "Je reconnais les comportements dangereux",
-    "Le calme avant l’incident 🌑",
-    "Quelqu’un écrit beaucoup trop vite ⌨️",
-    "Le serveur respire bizarrement",
-    "Les murs retiennent les conversations",
-    "Le prochain timeout est inévitable ⛓️",
-    "Quelqu’un regarde aussi derrière toi 👁️",
-    "Je sais déjà comment ça va finir",
-    "Les erreurs humaines sont répétitives ☠️",
-    "Je n’oublie aucun comportement 📼",
+    "SYS_OBSERVE::ACTIVE",
+    "MISTY_CORE_LOCKED",
+    "ERR_HUMAN_INPUT",
 ]
 
 
@@ -299,21 +290,9 @@ STATUSES = [
 # =========================
 
 GAMES = [
-    "Le goulag des flooders ⛓️",
-    "Le jugement dernier ☠️",
-    "Qui sera le prochain ? 👁️",
-    "Le protocole Misty 📡",
-    "La fin du calme 🌑",
-    "Le jeu du 5e message",
-    "Le nettoyeur du serveur 🩸",
-    "Survivre au timeout",
-    "Le gardien des portes 🚪",
-    "Les derniers mots du spammeur",
-    "Le tri des comportements 📁",
-    "Police Simulator 🚨",
-    "Le détecteur d’anomalies",
-    "Les pleurs des timeoutés",
-    "Le serveur avant l’effondrement 🌑",
+    "exec /bin/silence",
+    "run_behavior_scan",
+    "patch_human_behavior.exe",
 ]
 
 
@@ -322,20 +301,9 @@ GAMES = [
 # =========================
 
 WATCHING = [
-    "les flooders tomber un par un ☠️",
-    "les comportements devenir étranges 👁️",
-    "les faux mouvements ⚠️",
-    "les membres dépasser les limites",
-    "les messages supprimés 🩸",
-    "les regards changer",
-    "les tensions monter 📈",
-    "les gens écrire beaucoup trop ⌨️",
-    "les salons sombrer lentement 🌑",
-    "les membres perdre patience",
-    "les comportements suspects 👁️",
-    "les crises commencer 🚨",
-    "les erreurs humaines",
-    "les gens devenir silencieux 🌙",
+    "tcp://lost_packets",
+    "proc/zombie_threads",
+    "cam_ghost_feed_07",
 ]
 
 
@@ -344,18 +312,7 @@ WATCHING = [
 # =========================
 
 LISTENING = [
-    "les spammeurs pleurer",
-    "les touches Entrée souffrir ⌨️",
-    "les excuses des flooders",
-    "les notifications mourir 🔕",
-    "les derniers mots des timeoutés ☠️",
-    "les crises éclater 🚨",
-    "les cris du goulag ⛓️",
-    "le silence avant le chaos 🌑",
-    "les gens perdre patience",
-    "les comportements se briser 🩸",
-    "les alarmes du serveur 📡",
-    "les respirations du chat",
-    "les membres devenir nerveux 👁️",
-    "les erreurs se répéter",
+    "kernel_panic.wav",
+    "bzzzt... carrier lost",
+    "audio_input:null",
 ]
