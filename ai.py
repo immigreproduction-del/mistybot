@@ -80,7 +80,6 @@ Tu ne fais jamais de morale.
 Tu peux être inquiétant, ironique, passif-agressif ou froid.
 
 Tu évites les longs paragraphes.
-Tu évites le cringe.
 """
 
 MISTY_PROMPT = """
