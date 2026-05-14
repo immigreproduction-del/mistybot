@@ -35,7 +35,9 @@ def get_default_user_memory():
         "caps_messages": 0,
         "spam_timeouts": 0,
         "behavior_score": 0,
-        "last_seen": None
+        "last_seen": None,
+        "conversation": [],
+        "conversation_updated_at": None,
     }
 
 
@@ -67,6 +69,82 @@ def update_user_memory(user_id, updates):
 
 def contains_words(content, words):
     return contains_loose_any(content, words)
+
+
+def _trim_conversation_text(content):
+    content = " ".join(content.split())
+
+    if len(content) <= CONVERSATION_MEMORY_MAX_CHARS:
+        return content
+
+    return content[:CONVERSATION_MEMORY_MAX_CHARS].rstrip() + "..."
+
+
+def _conversation_is_expired(updated_at):
+    if not updated_at:
+        return False
+
+    try:
+        last_update = datetime.fromisoformat(updated_at)
+    except ValueError:
+        return True
+
+    now = datetime.now(timezone.utc)
+    return (now - last_update).total_seconds() > CONVERSATION_MEMORY_TIMEOUT_SECONDS
+
+
+def _get_active_conversation(user_data):
+    conversation = user_data.get("conversation", [])
+    updated_at = user_data.get("conversation_updated_at")
+
+    if _conversation_is_expired(updated_at):
+        return []
+
+    return conversation
+
+
+def remember_conversation_exchange(user_id, user_message, bot_reply):
+    if not ENABLE_MEMORY:
+        return
+
+    memory = load_memory()
+    user_id = str(user_id)
+
+    if user_id not in memory:
+        memory[user_id] = get_default_user_memory()
+
+    conversation = _get_active_conversation(memory[user_id])
+    conversation.append({
+        "user": _trim_conversation_text(user_message),
+        "bot": _trim_conversation_text(bot_reply),
+    })
+
+    memory[user_id]["conversation"] = conversation[-CONVERSATION_MEMORY_MAX_EXCHANGES:]
+    memory[user_id]["conversation_updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    save_memory(memory)
+
+
+def get_conversation_context(user_id):
+    data = get_user_memory(user_id)
+    conversation = _get_active_conversation(data)
+
+    if not conversation:
+        return ""
+
+    lines = [
+        "Conversation récente avec cette personne :"
+    ]
+
+    for exchange in conversation:
+        lines.append(f"- Elle a dit : {exchange.get('user', '')}")
+        lines.append(f"- Tu as répondu : {exchange.get('bot', '')}")
+
+    lines.append(
+        "Utilise ce contexte pour garder le fil si la personne continue la discussion."
+    )
+
+    return "\n".join(lines)
 
 
 def is_caps_abuse(content):

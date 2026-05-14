@@ -5,7 +5,11 @@ from openai import OpenAI
 
 from ambiance import get_global_mood
 from config import *
-from memory import get_memory_context
+from memory import (
+    get_conversation_context,
+    get_memory_context,
+    remember_conversation_exchange,
+)
 
 client_ai = None
 
@@ -204,12 +208,16 @@ Tu ne dois jamais écrire de mention avec @.
 """
 
     is_misty = message.author.id == MISTY_USER_ID
+    conversation_context = get_conversation_context(message.author.id)
 
     if is_misty:
         prompt = MISTY_PROMPT
     else:
         memory_context = get_memory_context(message.author.id)
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
+
+    if conversation_context:
+        prompt = prompt + "\n\n" + conversation_context
 
     try:
         response = get_ai_client().chat.completions.create(
@@ -236,11 +244,14 @@ Tu ne dois jamais écrire de mention avec @.
                 global_cooldown = now
 
             await message.reply(reply)
+            remember_conversation_exchange(message.author.id, content, reply)
 
     except Exception as e:
         print(f"Erreur IA : {e}")
 
         try:
-            await message.reply(AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)])
+            fallback_reply = AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)]
+            await message.reply(fallback_reply)
+            remember_conversation_exchange(message.author.id, content, fallback_reply)
         except Exception as reply_error:
             print(f"Erreur fallback IA : {reply_error}")
