@@ -1,5 +1,6 @@
 import os
 import discord
+from discord import app_commands
 
 from ambiance import (
     observe_ambiance,
@@ -7,6 +8,7 @@ from ambiance import (
     maybe_send_micro_observation,
 )
 from antispam import handle_antispam
+from config import AI_COOLDOWN_BYPASS_USER_IDS
 from status import start_status_loop
 from ai import handle_ai
 from memory import observe_message
@@ -23,6 +25,7 @@ intents.members = True
 intents.reactions = True
 
 client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 
 
 def _matches_optional_id(value, expected):
@@ -48,9 +51,49 @@ def should_ignore_message(message):
     return False
 
 
+def can_use_sendmsg(member):
+    if member.guild_permissions.administrator:
+        return True
+
+    return member.id in AI_COOLDOWN_BYPASS_USER_IDS
+
+
+@tree.command(
+    name="sendmsg",
+    description="Envoie un message dans ce salon avec Mistybot."
+)
+@app_commands.describe(message="Message à envoyer avec Mistybot")
+async def sendmsg(interaction: discord.Interaction, message: str):
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(
+            "Commande inutilisable ici.",
+            ephemeral=True
+        )
+        return
+
+    if not can_use_sendmsg(interaction.user):
+        await interaction.response.send_message(
+            "Non.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.channel.send(message)
+    await interaction.response.send_message(
+        "Message envoyé.",
+        ephemeral=True
+    )
+
+
 @client.event
 async def on_ready():
     print(f"Bot connecté : {client.user}")
+    await tree.sync()
+
+    for guild in client.guilds:
+        tree.copy_global_to(guild=guild)
+        await tree.sync(guild=guild)
+
     start_status_loop(client)
 
 
