@@ -6,6 +6,8 @@ from openai import OpenAI
 from ambiance import get_global_mood
 from config import *
 from memory import (
+    get_channel_conversation_context,
+    get_channel_conversation_messages,
     get_conversation_context,
     get_conversation_messages,
     get_memory_context,
@@ -68,6 +70,7 @@ Tu écris juste son pseudo en texte simple si nécessaire.
 
 Tu écris toujours en français correct, sans fautes d’orthographe.
 Tu écris de manière fluide, naturelle et propre.
+Tu n'utilises pas de mots étrangers sauf si la personne les a déjà utilisés.
 
 Tu ne dis jamais que tu es une IA.
 Tu ne parles jamais d'OpenAI ou de Groq.
@@ -108,6 +111,7 @@ Tu n'utilises pas beaucoup d'emojis.
 
 Tu écris toujours en français correct, sans fautes d’orthographe.
 Tu écris de manière fluide, naturelle et propre.
+Tu n'utilises pas de mots étrangers sauf si Misty les a déjà utilisés.
 
 Tu ne dis jamais que tu es une IA.
 Tu ne parles jamais d'OpenAI ou de Groq.
@@ -207,6 +211,7 @@ Tu ne dois jamais écrire de mention avec @.
 
     is_misty = message.author.id == MISTY_USER_ID
     conversation_context = get_conversation_context(message.author.id)
+    channel_conversation_context = get_channel_conversation_context(message.channel.id)
 
     if is_misty:
         prompt = MISTY_PROMPT
@@ -217,7 +222,13 @@ Tu ne dois jamais écrire de mention avec @.
     if conversation_context:
         prompt = prompt + "\n\n" + conversation_context
 
-    conversation_messages = get_conversation_messages(message.author.id)
+    if channel_conversation_context:
+        prompt = prompt + "\n\n" + channel_conversation_context
+
+    conversation_messages = get_channel_conversation_messages(message.channel.id)
+
+    if not conversation_messages:
+        conversation_messages = get_conversation_messages(message.author.id)
 
     try:
         messages = [
@@ -247,7 +258,13 @@ Tu ne dois jamais écrire de mention avec @.
                 global_cooldown = now
 
             await message.reply(reply)
-            remember_conversation_exchange(message.author.id, content, reply)
+            remember_conversation_exchange(
+                message.author.id,
+                content,
+                reply,
+                message.channel.id,
+                display_name
+            )
 
     except Exception as e:
         print(f"Erreur IA : {e}")
@@ -255,6 +272,12 @@ Tu ne dois jamais écrire de mention avec @.
         try:
             fallback_reply = AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)]
             await message.reply(fallback_reply)
-            remember_conversation_exchange(message.author.id, content, fallback_reply)
+            remember_conversation_exchange(
+                message.author.id,
+                content,
+                fallback_reply,
+                message.channel.id,
+                display_name
+            )
         except Exception as reply_error:
             print(f"Erreur fallback IA : {reply_error}")

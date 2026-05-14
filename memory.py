@@ -41,6 +41,13 @@ def get_default_user_memory():
     }
 
 
+def get_default_channel_memory():
+    return {
+        "conversation": [],
+        "conversation_updated_at": None,
+    }
+
+
 def get_user_memory(user_id):
     memory = load_memory()
     user_id = str(user_id)
@@ -50,6 +57,18 @@ def get_user_memory(user_id):
         save_memory(memory)
 
     return memory[user_id]
+
+
+def get_channel_memory(channel_id):
+    memory = load_memory()
+    channels = memory.setdefault("_channels", {})
+    channel_id = str(channel_id)
+
+    if channel_id not in channels:
+        channels[channel_id] = get_default_channel_memory()
+        save_memory(memory)
+
+    return channels[channel_id]
 
 
 def update_user_memory(user_id, updates):
@@ -103,11 +122,7 @@ def _get_active_conversation(user_data):
     return conversation
 
 
-def remember_conversation_exchange(user_id, user_message, bot_reply):
-    if not ENABLE_MEMORY:
-        return
-
-    memory = load_memory()
+def _remember_user_conversation(memory, user_id, user_message, bot_reply):
     user_id = str(user_id)
 
     if user_id not in memory:
@@ -121,6 +136,48 @@ def remember_conversation_exchange(user_id, user_message, bot_reply):
 
     memory[user_id]["conversation"] = conversation[-CONVERSATION_MEMORY_MAX_EXCHANGES:]
     memory[user_id]["conversation_updated_at"] = datetime.now(timezone.utc).isoformat()
+
+
+def _remember_channel_conversation(memory, channel_id, display_name, user_message, bot_reply):
+    channels = memory.setdefault("_channels", {})
+    channel_id = str(channel_id)
+
+    if channel_id not in channels:
+        channels[channel_id] = get_default_channel_memory()
+
+    conversation = _get_active_conversation(channels[channel_id])
+    conversation.append({
+        "speaker": _trim_conversation_text(display_name),
+        "user": _trim_conversation_text(user_message),
+        "bot": _trim_conversation_text(bot_reply),
+    })
+
+    channels[channel_id]["conversation"] = conversation[-CONVERSATION_MEMORY_MAX_EXCHANGES:]
+    channels[channel_id]["conversation_updated_at"] = datetime.now(timezone.utc).isoformat()
+
+
+def remember_conversation_exchange(
+    user_id,
+    user_message,
+    bot_reply,
+    channel_id=None,
+    display_name=None
+):
+    if not ENABLE_MEMORY:
+        return
+
+    memory = load_memory()
+
+    _remember_user_conversation(memory, user_id, user_message, bot_reply)
+
+    if channel_id is not None and display_name:
+        _remember_channel_conversation(
+            memory,
+            channel_id,
+            display_name,
+            user_message,
+            bot_reply
+        )
 
     save_memory(memory)
 
@@ -147,6 +204,29 @@ def get_conversation_context(user_id):
     return "\n".join(lines)
 
 
+def get_channel_conversation_context(channel_id):
+    data = get_channel_memory(channel_id)
+    conversation = _get_active_conversation(data)
+
+    if not conversation:
+        return ""
+
+    lines = [
+        "Conversation récente dans ce salon :"
+    ]
+
+    for exchange in conversation:
+        speaker = exchange.get("speaker", "Quelqu'un")
+        lines.append(f"- {speaker} a dit : {exchange.get('user', '')}")
+        lines.append(f"- Tu as répondu : {exchange.get('bot', '')}")
+
+    lines.append(
+        "Utilise ce contexte si une autre personne rejoint la même discussion."
+    )
+
+    return "\n".join(lines)
+
+
 def get_conversation_messages(user_id):
     data = get_user_memory(user_id)
     conversation = _get_active_conversation(data)
@@ -160,6 +240,31 @@ def get_conversation_messages(user_id):
             messages.append({
                 "role": "user",
                 "content": user_message
+            })
+
+        if bot_reply:
+            messages.append({
+                "role": "assistant",
+                "content": bot_reply
+            })
+
+    return messages
+
+
+def get_channel_conversation_messages(channel_id):
+    data = get_channel_memory(channel_id)
+    conversation = _get_active_conversation(data)
+    messages = []
+
+    for exchange in conversation:
+        speaker = exchange.get("speaker", "Quelqu'un")
+        user_message = exchange.get("user")
+        bot_reply = exchange.get("bot")
+
+        if user_message:
+            messages.append({
+                "role": "user",
+                "content": f"{speaker} : {user_message}"
             })
 
         if bot_reply:
