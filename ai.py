@@ -7,6 +7,7 @@ from ambiance import get_global_mood
 from config import *
 from memory import (
     get_conversation_context,
+    get_conversation_messages,
     get_memory_context,
     remember_conversation_exchange,
 )
@@ -219,19 +220,24 @@ Tu ne dois jamais écrire de mention avec @.
     if conversation_context:
         prompt = prompt + "\n\n" + conversation_context
 
+    conversation_messages = get_conversation_messages(message.author.id)
+
     try:
+        messages = [
+            {
+                "role": "system",
+                "content": prompt
+            }
+        ]
+        messages.extend(conversation_messages)
+        messages.append({
+            "role": "user",
+            "content": user_context
+        })
+
         response = get_ai_client().chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content": prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_context
-                }
-            ],
+            messages=messages,
             max_tokens=140,
             temperature=1.2
         )

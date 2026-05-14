@@ -147,6 +147,30 @@ def get_conversation_context(user_id):
     return "\n".join(lines)
 
 
+def get_conversation_messages(user_id):
+    data = get_user_memory(user_id)
+    conversation = _get_active_conversation(data)
+    messages = []
+
+    for exchange in conversation:
+        user_message = exchange.get("user")
+        bot_reply = exchange.get("bot")
+
+        if user_message:
+            messages.append({
+                "role": "user",
+                "content": user_message
+            })
+
+        if bot_reply:
+            messages.append({
+                "role": "assistant",
+                "content": bot_reply
+            })
+
+    return messages
+
+
 def is_caps_abuse(content):
     letters = [char for char in content if char.isalpha()]
 
