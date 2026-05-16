@@ -4,6 +4,7 @@ import discord
 from openai import OpenAI
 
 from ambiance import get_global_mood
+from antispam import reset_antispam_for_channel
 from config import *
 from memory import (
     get_channel_conversation_context,
@@ -257,6 +258,7 @@ Tu ne dois jamais écrire de mention avec @.
                 global_cooldown = now
 
             await message.reply(reply)
+            reset_antispam_for_channel(message.channel.id)
             remember_conversation_exchange(
                 message.author.id,
                 content,
@@ -271,6 +273,7 @@ Tu ne dois jamais écrire de mention avec @.
         try:
             fallback_reply = AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)]
             await message.reply(fallback_reply)
+            reset_antispam_for_channel(message.channel.id)
             remember_conversation_exchange(
                 message.author.id,
                 content,

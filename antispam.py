@@ -10,8 +10,18 @@ streak_by_channel = {}
 first_message_time_by_channel = {}
 
 
+def reset_antispam_for_channel(channel_id):
+    last_author_by_channel[channel_id] = None
+    streak_by_channel[channel_id] = 0
+    first_message_time_by_channel[channel_id] = None
+
+
 async def handle_antispam(message: discord.Message, client):
-    if message.author.bot or not message.guild:
+    if not message.guild:
+        return
+
+    if message.author.bot:
+        reset_antispam_for_channel(message.channel.id)
         return
 
     channel_id = message.channel.id
@@ -60,6 +70,4 @@ async def handle_antispam(message: discord.Message, client):
         except Exception as e:
             print(f"Erreur timeout : {e}")
 
-        last_author_by_channel[channel_id] = None
-        streak_by_channel[channel_id] = 0
-        first_message_time_by_channel[channel_id] = None
+        reset_antispam_for_channel(channel_id)

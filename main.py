@@ -7,7 +7,7 @@ from ambiance import (
     maybe_send_chat_remark,
     maybe_send_micro_observation,
 )
-from antispam import handle_antispam
+from antispam import handle_antispam, reset_antispam_for_channel
 from config import AI_COOLDOWN_BYPASS_USER_IDS
 from status import start_status_loop
 from ai import handle_ai
@@ -79,6 +79,7 @@ async def sendmsg(interaction: discord.Interaction, message: str):
         return
 
     await interaction.channel.send(message)
+    reset_antispam_for_channel(interaction.channel.id)
     await interaction.response.send_message(
         "Message envoyé.",
         ephemeral=True
