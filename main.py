@@ -8,7 +8,7 @@ from ambiance import (
     maybe_send_micro_observation,
 )
 from antispam import handle_antispam, reset_antispam_for_channel
-from config import AI_COOLDOWN_BYPASS_USER_IDS
+from config import AI_COOLDOWN_BYPASS_USER_IDS, PURGE_AFTER_MAX_MESSAGES
 from status import start_status_loop
 from ai import handle_ai
 from memory import observe_message
@@ -58,6 +58,13 @@ def can_use_sendmsg(member):
     return member.id in AI_COOLDOWN_BYPASS_USER_IDS
 
 
+def can_use_moderation_command(member):
+    if member.guild_permissions.administrator:
+        return True
+
+    return member.guild_permissions.manage_messages
+
+
 @tree.command(
     name="sendmsg",
     description="Envoie un message dans ce salon avec Mistybot."
@@ -82,6 +89,86 @@ async def sendmsg(interaction: discord.Interaction, message: str):
     reset_antispam_for_channel(interaction.channel.id)
     await interaction.response.send_message(
         "Message envoyé.",
+        ephemeral=True
+    )
+
+
+@tree.command(
+    name="purgeafter",
+    description="Supprime les messages envoyes apres un message precis."
+)
+@app_commands.describe(message_id="ID du message a partir duquel supprimer en dessous")
+async def purgeafter(interaction: discord.Interaction, message_id: str):
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(
+            "Commande inutilisable ici.",
+            ephemeral=True
+        )
+        return
+
+    if not can_use_moderation_command(interaction.user):
+        await interaction.response.send_message(
+            "Non.",
+            ephemeral=True
+        )
+        return
+
+    channel = interaction.channel
+    if not hasattr(channel, "fetch_message") or not hasattr(channel, "purge"):
+        await interaction.response.send_message(
+            "Je ne peux pas purger ici.",
+            ephemeral=True
+        )
+        return
+
+    try:
+        anchor_message_id = int(message_id)
+    except ValueError:
+        await interaction.response.send_message(
+            "ID invalide.",
+            ephemeral=True
+        )
+        return
+
+    try:
+        anchor_message = await channel.fetch_message(anchor_message_id)
+    except discord.NotFound:
+        await interaction.response.send_message(
+            "Message introuvable dans ce salon.",
+            ephemeral=True
+        )
+        return
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "Je n'ai pas acces a ce message.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        deleted_messages = await channel.purge(
+            limit=PURGE_AFTER_MAX_MESSAGES,
+            after=anchor_message,
+            check=lambda message: not message.pinned,
+            bulk=True
+        )
+    except discord.Forbidden:
+        await interaction.followup.send(
+            "Il me manque la permission de supprimer les messages.",
+            ephemeral=True
+        )
+        return
+    except discord.HTTPException:
+        await interaction.followup.send(
+            "La purge a bloque cote Discord.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.followup.send(
+        f"{len(deleted_messages)} message(s) supprime(s).",
         ephemeral=True
     )
 

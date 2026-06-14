@@ -28,6 +28,15 @@ SHORTENER_PATTERN = re.compile(
 recent_link_messages = defaultdict(deque)
 
 
+def contains_forbidden_timeout_word(content):
+    lowered_content = content.lower()
+
+    return any(
+        re.search(rf"\b{re.escape(word.lower())}\b", lowered_content)
+        for word in FORBIDDEN_TIMEOUT_WORDS
+    )
+
+
 def contains_discord_invite(content):
     return bool(INVITE_PATTERN.search(content))
 
@@ -123,6 +132,28 @@ async def handle_security(message: discord.Message, client):
 
     if message.author.bot or not message.guild:
         return False
+
+    if contains_forbidden_timeout_word(message.content):
+        await safe_delete(message)
+
+        now = discord.utils.utcnow()
+        timed_out = await safe_timeout(
+            message.author,
+            now + timedelta(days=FORBIDDEN_WORD_TIMEOUT_DAYS),
+            reason="Mot interdit"
+        )
+
+        action = "message supprime"
+        if timed_out:
+            action += f" + timeout {FORBIDDEN_WORD_TIMEOUT_DAYS} jours"
+
+        await log_security_action(
+            client,
+            message,
+            "mot interdit",
+            action
+        )
+        return True
 
     if message.author.guild_permissions.administrator:
         return False
