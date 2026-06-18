@@ -76,7 +76,17 @@ async def log_security_action(client, message, reason, action):
     )
 
 
-async def log_security_raid(client, message, reason, channels_count, messages_count):
+async def log_security_raid(
+    client,
+    message,
+    reason,
+    channels_count,
+    messages_count,
+    sanction_text=None
+):
+    if sanction_text is None:
+        sanction_text = f"timeout {INVITE_SPAM_TIMEOUT_MINUTES} minutes"
+
     description = f"""
 **Utilisateur :** {message.author.display_name}
 **Username :** `{message.author.name}`
@@ -85,7 +95,7 @@ async def log_security_raid(client, message, reason, channels_count, messages_co
 **Raison :** {reason}
 **Messages suspects :** {messages_count}
 **Salons touches :** {channels_count}
-**Sanction :** timeout {INVITE_SPAM_TIMEOUT_MINUTES} minutes
+**Sanction :** {sanction_text}
 
 **Dernier salon :** {message.channel.mention}
 **Dernier message :**

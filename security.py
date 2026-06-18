@@ -26,6 +26,7 @@ SHORTENER_PATTERN = re.compile(
 )
 
 recent_link_messages = defaultdict(deque)
+recent_attachment_messages = defaultdict(deque)
 
 
 def contains_forbidden_timeout_word(content):
@@ -35,6 +36,10 @@ def contains_forbidden_timeout_word(content):
         re.search(rf"\b{re.escape(word.lower())}\b", lowered_content)
         for word in FORBIDDEN_TIMEOUT_WORDS
     )
+
+
+def has_attachment(message):
+    return bool(message.attachments)
 
 
 def contains_discord_invite(content):
@@ -108,6 +113,43 @@ def remember_link_message(message, now):
     return len(entries), len(channel_ids)
 
 
+def remember_attachment_message(message, now):
+    user_id = message.author.id
+    entries = recent_attachment_messages[user_id]
+    entries.append((now, message.channel.id, message.id))
+
+    while entries:
+        created_at, _, _ = entries[0]
+        age = (now - created_at).total_seconds()
+
+        if age <= ATTACHMENT_SPAM_WINDOW_SECONDS:
+            break
+
+        entries.popleft()
+
+    channel_ids = {channel_id for _, channel_id, _ in entries}
+    return len(entries), len(channel_ids), list(entries)
+
+
+async def delete_recent_attachment_messages(client, entries, current_message):
+    for _, channel_id, message_id in entries:
+        if message_id == current_message.id:
+            await safe_delete(current_message)
+            continue
+
+        channel = client.get_channel(channel_id)
+
+        if channel is None or not hasattr(channel, "fetch_message"):
+            continue
+
+        try:
+            old_message = await channel.fetch_message(message_id)
+        except Exception:
+            continue
+
+        await safe_delete(old_message)
+
+
 async def safe_delete(message):
     try:
         await message.delete()
@@ -158,12 +200,42 @@ async def handle_security(message: discord.Message, client):
     if message.author.guild_permissions.administrator:
         return False
 
+    now = discord.utils.utcnow()
+
+    if has_attachment(message):
+        messages_count, channels_count, attachment_entries = remember_attachment_message(message, now)
+
+        is_attachment_raid = (
+            messages_count >= ATTACHMENT_SPAM_MESSAGE_LIMIT
+            and channels_count >= ATTACHMENT_SPAM_CHANNEL_LIMIT
+        )
+
+        if is_attachment_raid:
+            await delete_recent_attachment_messages(client, attachment_entries, message)
+
+            timed_out = await safe_timeout(
+                message.author,
+                now + timedelta(days=ATTACHMENT_SPAM_TIMEOUT_DAYS),
+                reason="Spam de fichiers/images dans plusieurs salons"
+            )
+
+            await log_security_raid(
+                client,
+                message,
+                "spam de fichiers/images",
+                channels_count,
+                messages_count,
+                f"timeout {ATTACHMENT_SPAM_TIMEOUT_DAYS} jours"
+            )
+
+            recent_attachment_messages[message.author.id].clear()
+            return True
+
     reason = get_link_reason(message.content)
 
     if reason is None:
         return False
 
-    now = discord.utils.utcnow()
     messages_count, channels_count = remember_link_message(message, now)
 
     is_raid_pattern = (
