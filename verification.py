@@ -287,7 +287,7 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
     failed_attempts_by_user[user_id] = failures
 
     if failures >= VERIFICATION_MAX_FAILURES:
-        content = "Mauvaise reponse. Trop d'echecs. Contact un modérateur/admin."
+        content = "Mauvaise reponse. Trop d'échecs, envoi un message à un modérateur/admin"
     else:
         remaining = VERIFICATION_MAX_FAILURES - failures
         content = f"Mauvaise reponse. Tu peux recommencer. Essais restants : {remaining}."
