@@ -117,8 +117,8 @@ async def send_verification_welcome(member, client):
 
     await channel.send(
         f"{member.mention}\n"
-        "Bonjour, c'est juste une petite verification rapide pour eviter les bots. "
-        "Rien de complique, ca prend quelques secondes.",
+        "Bonjour, c'est Mistybot, on fait une petite verification rapide pour être sur que tu n'es pas un bot :) "
+        "Rien de compliqué, ça ne prend que quelques secondes.",
         view=VerificationStartView()
     )
 
@@ -133,7 +133,7 @@ async def start_verification_session(interaction):
 
     if interaction.channel_id != VERIFICATION_CHANNEL_ID:
         await interaction.response.send_message(
-            "La verification se fait dans le salon verification.",
+            "La vérification se fait dans le salon vérification.",
             ephemeral=True
         )
         return
@@ -143,7 +143,7 @@ async def start_verification_session(interaction):
 
     if role is not None and role in member.roles:
         await interaction.response.send_message(
-            "Verification deja validee.",
+            "Vérification déjà validée.",
             ephemeral=True
         )
         return
@@ -161,7 +161,7 @@ async def start_verification_session(interaction):
 
     if user_id in active_sessions:
         await interaction.response.send_message(
-            "Une verification est deja en cours.",
+            "Une vérification est déjà en cours.",
             ephemeral=True
         )
         return
@@ -170,7 +170,7 @@ async def start_verification_session(interaction):
 
     if failures >= VERIFICATION_MAX_FAILURES:
         await interaction.response.send_message(
-            "Trop d'echecs. Demande a un moderateur.",
+            "Trop d'échecs. Contact un admin/modérateur.",
             ephemeral=True
         )
         return
@@ -182,7 +182,7 @@ async def start_verification_session(interaction):
     last_start_by_user[user_id] = now
 
     await interaction.response.send_message(
-        f"Recopie mentalement ce code : `{answer}`\n"
+        f"Clique sur la case en dessous qui correspond à ce code : `{answer}`\n"
         f"Tu as {VERIFICATION_TIMEOUT_SECONDS} secondes.",
         view=CaptchaChoiceView(user_id, answer),
         ephemeral=True
@@ -206,7 +206,7 @@ async def expire_verification_session(interaction, user_id, sent_message):
 
     try:
         await sent_message.edit(
-            content="Verification expiree. Tu peux relancer avec le bouton initial.",
+            content="Vérification expirée. Tu peux relancer en appuyant sur le bouton en haut.",
             view=None
         )
     except discord.HTTPException:
@@ -216,7 +216,7 @@ async def expire_verification_session(interaction, user_id, sent_message):
         interaction.client,
         interaction.user,
         "Verification expiree",
-        "Session invalidee apres timeout."
+        "Session invalidee après timeout."
     )
 
 
@@ -232,7 +232,7 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
 
     if session is None or session.answered:
         await interaction.response.send_message(
-            "Session expiree.",
+            "Session expirée.",
             ephemeral=True
         )
         return
@@ -272,7 +272,7 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
         failed_attempts_by_user.pop(user_id, None)
 
         await interaction.response.edit_message(
-            content="Verification reussie.",
+            content="Vérification réussie, EZ4ENCE",
             view=None
         )
         await log_verification_event(
@@ -287,7 +287,7 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
     failed_attempts_by_user[user_id] = failures
 
     if failures >= VERIFICATION_MAX_FAILURES:
-        content = "Mauvaise reponse. Trop d'echecs. Demande a un moderateur."
+        content = "Mauvaise reponse. Trop d'echecs. Contact un modérateur/admin."
     else:
         remaining = VERIFICATION_MAX_FAILURES - failures
         content = f"Mauvaise reponse. Tu peux recommencer. Essais restants : {remaining}."
@@ -296,7 +296,7 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
     await log_verification_event(
         interaction.client,
         interaction.user,
-        "Verification echouee",
+        "Verification échouée",
         f"Echecs : {failures}/{VERIFICATION_MAX_FAILURES}"
     )
 
