@@ -14,6 +14,7 @@ from ai import handle_ai
 from memory import observe_message
 from reactions import handle_reactions
 from security import handle_security
+from verification import VerificationStartView, send_verification_welcome
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 LOCAL_TEST_GUILD_ID = os.getenv("LOCAL_TEST_GUILD_ID")
@@ -23,6 +24,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.reactions = True
+intents.guilds = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -176,6 +178,11 @@ async def purgeafter(interaction: discord.Interaction, message_id: str):
 @client.event
 async def on_ready():
     print(f"Bot connecté : {client.user}")
+
+    if not getattr(client, "_verification_view_added", False):
+        client.add_view(VerificationStartView())
+        client._verification_view_added = True
+
     await tree.sync()
 
     for guild in client.guilds:
@@ -183,6 +190,11 @@ async def on_ready():
         await tree.sync(guild=guild)
 
     start_status_loop(client)
+
+
+@client.event
+async def on_member_join(member):
+    await send_verification_welcome(member, client)
 
 
 @client.event

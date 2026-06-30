@@ -110,6 +110,23 @@ async def log_security_raid(
     )
 
 
+async def log_verification_event(client, member, title, details):
+    description = f"""
+**Utilisateur :** {member.display_name}
+**Username :** `{member.name}`
+**ID :** `{member.id}`
+
+**Details :** {details}
+"""
+
+    await send_log(
+        client,
+        title,
+        description,
+        discord.Color.green()
+    )
+
+
 async def log_ai_response(client, message, is_misty=False):
     clean_message = message.clean_content.replace("@Mistybot", "").strip()
 
