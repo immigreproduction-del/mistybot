@@ -20,8 +20,10 @@ client_ai = None
 client_ai_provider = None
 
 DEPRECATED_GEMINI_MODELS = {
-    "gemini-2.5-flash": "gemini-3.6-flash",
-    "models/gemini-2.5-flash": "gemini-3.6-flash",
+    # On garde juste une sécurité au cas où
+    "gemini-2.5-flash": "gemini-3.5-flash-lite",
+    "models/gemini-2.5-flash": "gemini-3.5-flash-lite",
+    "gemini-3.6-flash": "gemini-3.5-flash-lite",
 }
 
 
