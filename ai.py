@@ -1,5 +1,6 @@
 import os
 import time
+import traceback
 import discord
 from openai import OpenAI
 
@@ -58,6 +59,40 @@ def get_ai_model():
         return GEMINI_MODEL
 
     return GROQ_MODEL
+
+
+def build_ai_request_kwargs(messages):
+    kwargs = {
+        "model": get_ai_model(),
+        "messages": messages,
+        "temperature": 1.2,
+    }
+
+    if AI_PROVIDER == "gemini":
+        kwargs["max_completion_tokens"] = 140
+
+        if GEMINI_REASONING_EFFORT:
+            kwargs["reasoning_effort"] = GEMINI_REASONING_EFFORT
+    else:
+        kwargs["max_tokens"] = 140
+
+    return kwargs
+
+
+def extract_reply(response):
+    if not response.choices:
+        raise RuntimeError(f"Reponse IA sans choices : {response}")
+
+    message = response.choices[0].message
+    content = getattr(message, "content", None)
+
+    if isinstance(content, str):
+        reply = content.strip()
+
+        if reply:
+            return reply
+
+    raise RuntimeError(f"Reponse IA vide ou inattendue : {response}")
 
 MISTY_USER_ID = 474146761091579921
 LUIGI_USER_ID = 675280844390400000
@@ -282,13 +317,10 @@ Tu ne dois jamais écrire de mention avec @.
         })
 
         response = get_ai_client().chat.completions.create(
-            model=get_ai_model(),
-            messages=messages,
-            max_tokens=140,
-            temperature=1.2
+            **build_ai_request_kwargs(messages)
         )
 
-        reply = response.choices[0].message.content
+        reply = extract_reply(response)
 
         if reply:
             if not bypass_cooldown:
@@ -306,7 +338,8 @@ Tu ne dois jamais écrire de mention avec @.
             )
 
     except Exception as e:
-        print(f"Erreur IA : {e}")
+        print(f"Erreur IA ({AI_PROVIDER}/{get_ai_model()}) : {e}")
+        traceback.print_exc()
 
         try:
             fallback_reply = AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)]
