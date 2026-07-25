@@ -60,6 +60,10 @@ def can_use_sendmsg(member):
     return member.id in AI_COOLDOWN_BYPASS_USER_IDS
 
 
+def can_use_admin_command(member):
+    return member.guild_permissions.administrator
+
+
 def can_use_moderation_command(member):
     if member.guild_permissions.administrator:
         return True
@@ -91,6 +95,66 @@ async def sendmsg(interaction: discord.Interaction, message: str):
     reset_antispam_for_channel(interaction.channel.id)
     await interaction.response.send_message(
         "Message envoyé.",
+        ephemeral=True
+    )
+
+
+@tree.command(
+    name="sendimg",
+    description="Envoie une image dans ce salon avec Mistybot."
+)
+@app_commands.describe(
+    image="Image a envoyer avec Mistybot",
+    message="Message optionnel a envoyer avec l'image"
+)
+async def sendimg(
+    interaction: discord.Interaction,
+    image: discord.Attachment,
+    message: str | None = None
+):
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(
+            "Commande inutilisable ici.",
+            ephemeral=True
+        )
+        return
+
+    if not can_use_admin_command(interaction.user):
+        await interaction.response.send_message(
+            "Non.",
+            ephemeral=True
+        )
+        return
+
+    content_type = image.content_type or ""
+    filename = image.filename.lower()
+    is_image = (
+        content_type.startswith("image/")
+        or filename.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp"))
+    )
+
+    if not is_image:
+        await interaction.response.send_message(
+            "Envoie une vraie image.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        file = await image.to_file()
+        await interaction.channel.send(content=message, file=file)
+        reset_antispam_for_channel(interaction.channel.id)
+    except discord.HTTPException:
+        await interaction.followup.send(
+            "Je n'ai pas pu envoyer l'image.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.followup.send(
+        "Image envoyee.",
         ephemeral=True
     )
 
