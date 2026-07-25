@@ -74,10 +74,10 @@ def build_ai_request_kwargs(messages):
 
     if AI_PROVIDER == "gemini":
         # Gemini 3.6+ n'accepte plus temperature / top_p / top_k
-        kwargs["max_tokens"] = 140
+        kwargs["max_tokens"] = 800
     else:
         kwargs["temperature"] = 1.2
-        kwargs["max_tokens"] = 140
+        kwargs["max_tokens"] = 800
 
     return kwargs
 
