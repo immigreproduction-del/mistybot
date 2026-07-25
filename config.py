@@ -127,6 +127,10 @@ MEMORY_SCORE_SPAM_TIMEOUT = 10
 # AI
 # =========================
 
+AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").strip().lower()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
 USER_COOLDOWN_SECONDS = 0
 GLOBAL_COOLDOWN_SECONDS = 0
 

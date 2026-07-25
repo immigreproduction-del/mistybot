@@ -16,30 +16,12 @@ from memory import (
 )
 
 client_ai = None
-client_ai_provider = None
 
 
 def get_ai_client():
-    global client_ai, client_ai_provider
+    global client_ai
 
-    if client_ai is None or client_ai_provider != AI_PROVIDER:
-        client_ai_provider = AI_PROVIDER
-
-        if AI_PROVIDER == "gemini":
-            api_key = os.getenv("GEMINI_API_KEY")
-
-            if not api_key:
-                raise RuntimeError("GEMINI_API_KEY manquante")
-
-            client_ai = OpenAI(
-                api_key=api_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-            )
-            return client_ai
-
-        if AI_PROVIDER != "groq":
-            raise RuntimeError(f"AI_PROVIDER invalide : {AI_PROVIDER}")
-
+    if client_ai is None:
         api_key = os.getenv("GROQ_API_KEY")
 
         if not api_key:
@@ -51,13 +33,6 @@ def get_ai_client():
         )
 
     return client_ai
-
-
-def get_ai_model():
-    if AI_PROVIDER == "gemini":
-        return GEMINI_MODEL
-
-    return GROQ_MODEL
 
 MISTY_USER_ID = 474146761091579921
 LUIGI_USER_ID = 675280844390400000
@@ -148,10 +123,6 @@ Tu ne dis jamais que tu es une IA.
 Tu ne parles jamais d'OpenAI ou de Groq.
 Tu ne parles jamais de politique.
 Tu évites de répéter les mêmes formulations d'une réponse à l'autre.
-"""
-
-TECHNICAL_PROVIDER_PROMPT = """
-Tu ne parles jamais de ton fournisseur technique, de ton modele, de ton API, de Gemini, de Google AI Studio, d'OpenAI ou de Groq.
 """
 
 user_cooldowns = {}
@@ -255,8 +226,6 @@ Tu ne dois jamais écrire de mention avec @.
         memory_context = get_memory_context(message.author.id)
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
 
-    prompt = prompt + "\n\n" + TECHNICAL_PROVIDER_PROMPT
-
     if conversation_context:
         prompt = prompt + "\n\n" + conversation_context
 
@@ -282,7 +251,7 @@ Tu ne dois jamais écrire de mention avec @.
         })
 
         response = get_ai_client().chat.completions.create(
-            model=get_ai_model(),
+            model="llama-3.3-70b-versatile",
             messages=messages,
             max_tokens=140,
             temperature=1.2
