@@ -19,6 +19,11 @@ from memory import (
 client_ai = None
 client_ai_provider = None
 
+DEPRECATED_GEMINI_MODELS = {
+    "gemini-2.5-flash": "gemini-3.6-flash",
+    "models/gemini-2.5-flash": "gemini-3.6-flash",
+}
+
 
 def get_ai_client():
     global client_ai, client_ai_provider
@@ -56,7 +61,7 @@ def get_ai_client():
 
 def get_ai_model():
     if AI_PROVIDER == "gemini":
-        return GEMINI_MODEL
+        return DEPRECATED_GEMINI_MODELS.get(GEMINI_MODEL, GEMINI_MODEL)
 
     return GROQ_MODEL
 
