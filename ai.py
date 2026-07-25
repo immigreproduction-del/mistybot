@@ -70,15 +70,13 @@ def build_ai_request_kwargs(messages):
     kwargs = {
         "model": get_ai_model(),
         "messages": messages,
-        "temperature": 1.2,
     }
 
     if AI_PROVIDER == "gemini":
-        kwargs["max_completion_tokens"] = 140
-
-        if GEMINI_REASONING_EFFORT:
-            kwargs["reasoning_effort"] = GEMINI_REASONING_EFFORT
+        # Gemini 3.6+ n'accepte plus temperature / top_p / top_k
+        kwargs["max_tokens"] = 140
     else:
+        kwargs["temperature"] = 1.2
         kwargs["max_tokens"] = 140
 
     return kwargs
