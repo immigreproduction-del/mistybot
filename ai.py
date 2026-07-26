@@ -158,6 +158,7 @@ AI_FALLBACK_REPLIES = [
     "Je suis cassé, ou juste je n'ai plus de token pour vous répondre (faites des dons).",
 ]
 
+
 def is_admin(member: discord.Member):
     return member.guild_permissions.administrator
 
@@ -167,23 +168,8 @@ def can_bypass_ai_cooldown(member: discord.Member):
 
 
 # =========================
-# Génération Gemini (natif + Search)
+# Génération Gemini (SDK natif - sans Search)
 # =========================
-
-def needs_search(text: str) -> bool:
-    """Détecte si le message a besoin d'infos en temps réel"""
-    text = text.lower()
-    keywords = [
-        "feu", "incendie", "forêt", "gironde", "bordeaux",
-        "actualité", "actu", "aujourd'hui", "en ce moment", "maintenant",
-        "hier", "ce matin", "cette nuit", "récemment",
-        "nouvelle", "news", "événement", "catastrophe",
-        "météo", "tempête", "inondation", "canicule",
-        "élection", "résultat", "score", "match",
-        "qui a gagné", "c'est quoi le", "il s'est passé"
-    ]
-    return any(word in text for word in keywords)
-
 
 def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_urls: list):
     client = get_gemini_client()
@@ -191,7 +177,7 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
 
     contents = []
 
-    # Historique
+    # Historique de conversation
     for msg in conversation_messages:
         role = msg.get("role")
         content = msg.get("content", "")
@@ -202,25 +188,16 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
         elif role == "assistant":
             contents.append(types.Content(role="model", parts=[types.Part(text=content)]))
 
-    # Message actuel
+    # Message actuel (texte + images)
     parts = [types.Part(text=user_text)]
     for url in image_urls:
         parts.append(types.Part.from_uri(file_uri=url, mime_type="image/jpeg"))
 
     contents.append(types.Content(role="user", parts=parts))
 
-    # Active le Search seulement si nécessaire
-    tools = []
-    if needs_search(user_text):
-        tools = [types.Tool(google_search=types.GoogleSearch())]
-        print("→ Search activé pour cette requête")
-    else:
-        print("→ Search désactivé (pas besoin)")
-
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
         max_output_tokens=800,
-        tools=tools if tools else None,
     )
 
     response = client.models.generate_content(
@@ -236,7 +213,7 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
 
 
 # =========================
-# Génération Groq (ancien système)
+# Génération Groq
 # =========================
 
 def generate_with_groq(messages: list):
@@ -346,14 +323,9 @@ Tu ne dois jamais écrire de mention avec @.
                 image_urls=image_urls,
             )
         else:
-            # Mode Groq (ancien format)
             messages = [{"role": "system", "content": prompt}]
             messages.extend(conversation_messages)
-            if image_urls:
-                # Groq ne gère pas bien les images → on ignore
-                messages.append({"role": "user", "content": user_context})
-            else:
-                messages.append({"role": "user", "content": user_context})
+            messages.append({"role": "user", "content": user_context})
             reply = generate_with_groq(messages)
 
         if reply:
