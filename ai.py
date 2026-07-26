@@ -170,11 +170,25 @@ def can_bypass_ai_cooldown(member: discord.Member):
 # Génération Gemini (natif + Search)
 # =========================
 
+def needs_search(text: str) -> bool:
+    """Détecte si le message a besoin d'infos en temps réel"""
+    text = text.lower()
+    keywords = [
+        "feu", "incendie", "forêt", "gironde", "bordeaux",
+        "actualité", "actu", "aujourd'hui", "en ce moment", "maintenant",
+        "hier", "ce matin", "cette nuit", "récemment",
+        "nouvelle", "news", "événement", "catastrophe",
+        "météo", "tempête", "inondation", "canicule",
+        "élection", "résultat", "score", "match",
+        "qui a gagné", "c'est quoi le", "il s'est passé"
+    ]
+    return any(word in text for word in keywords)
+
+
 def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_urls: list):
     client = get_gemini_client()
     model = get_ai_model()
 
-    # Construction du contenu
     contents = []
 
     # Historique
@@ -188,17 +202,25 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
         elif role == "assistant":
             contents.append(types.Content(role="model", parts=[types.Part(text=content)]))
 
-    # Message actuel (texte + images)
+    # Message actuel
     parts = [types.Part(text=user_text)]
     for url in image_urls:
-        parts.append(types.Part.from_uri(file_uri=url, mime_type="image/jpeg"))  # Gemini gère bien les URLs Discord
+        parts.append(types.Part.from_uri(file_uri=url, mime_type="image/jpeg"))
 
     contents.append(types.Content(role="user", parts=parts))
+
+    # Active le Search seulement si nécessaire
+    tools = []
+    if needs_search(user_text):
+        tools = [types.Tool(google_search=types.GoogleSearch())]
+        print("→ Search activé pour cette requête")
+    else:
+        print("→ Search désactivé (pas besoin)")
 
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
         max_output_tokens=800,
-        tools=[types.Tool(google_search=types.GoogleSearch())],  # ← Recherche activée
+        tools=tools if tools else None,
     )
 
     response = client.models.generate_content(
