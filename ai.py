@@ -3,6 +3,10 @@ import time
 import traceback
 import discord
 from openai import OpenAI
+
+from google import genai
+from google.genai import types
+
 from ambiance import get_global_mood
 from antispam import reset_antispam_for_channel
 from config import *
@@ -15,8 +19,13 @@ from memory import (
     remember_conversation_exchange,
 )
 
+# =========================
+# Clients
+# =========================
+
 client_ai = None
 client_ai_provider = None
+gemini_client = None
 
 DEPRECATED_GEMINI_MODELS = {
     "gemini-2.5-flash": "gemini-3.5-flash-lite",
@@ -24,21 +33,19 @@ DEPRECATED_GEMINI_MODELS = {
     "gemini-3.6-flash": "gemini-3.5-flash-lite",
 }
 
-def get_ai_client():
+
+def get_ai_model():
+    if AI_PROVIDER == "gemini":
+        return DEPRECATED_GEMINI_MODELS.get(GEMINI_MODEL, GEMINI_MODEL)
+    return GROQ_MODEL
+
+
+def get_openai_compatible_client():
+    """Utilisé uniquement pour Groq"""
     global client_ai, client_ai_provider
+
     if client_ai is None or client_ai_provider != AI_PROVIDER:
         client_ai_provider = AI_PROVIDER
-        if AI_PROVIDER == "gemini":
-            api_key = os.getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise RuntimeError("GEMINI_API_KEY manquante")
-            client_ai = OpenAI(
-                api_key=api_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-            )
-            return client_ai
-        if AI_PROVIDER != "groq":
-            raise RuntimeError(f"AI_PROVIDER invalide : {AI_PROVIDER}")
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise RuntimeError("GROQ_API_KEY manquante")
@@ -48,33 +55,21 @@ def get_ai_client():
         )
     return client_ai
 
-def get_ai_model():
-    if AI_PROVIDER == "gemini":
-        return DEPRECATED_GEMINI_MODELS.get(GEMINI_MODEL, GEMINI_MODEL)
-    return GROQ_MODEL
 
-def build_ai_request_kwargs(messages):
-    kwargs = {
-        "model": get_ai_model(),
-        "messages": messages,
-    }
-    if AI_PROVIDER == "gemini":
-        kwargs["max_tokens"] = 800
-    else:
-        kwargs["temperature"] = 1.2
-        kwargs["max_tokens"] = 800
-    return kwargs
+def get_gemini_client():
+    """Client natif Google GenAI"""
+    global gemini_client
+    if gemini_client is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY manquante")
+        gemini_client = genai.Client(api_key=api_key)
+    return gemini_client
 
-def extract_reply(response):
-    if not response.choices:
-        raise RuntimeError(f"Reponse IA sans choices : {response}")
-    message = response.choices[0].message
-    content = getattr(message, "content", None)
-    if isinstance(content, str):
-        reply = content.strip()
-        if reply:
-            return reply
-    raise RuntimeError(f"Reponse IA vide ou inattendue : {response}")
+
+# =========================
+# Prompts
+# =========================
 
 MISTY_USER_ID = 474146761091579921
 LUIGI_USER_ID = 675280844390400000
@@ -160,16 +155,87 @@ Tu ne parles jamais de ton fournisseur technique, de ton modele, de ton API, de 
 user_cooldowns = {}
 global_cooldown = 0
 AI_FALLBACK_REPLIES = [
-    "Pas maintenant.",
-    "Quelque chose bloque.",
-    "Je reviens.",
+    "Je suis cassé, ou juste je n'ai plus de token pour vous répondre (faites des dons).",
 ]
 
 def is_admin(member: discord.Member):
     return member.guild_permissions.administrator
 
+
 def can_bypass_ai_cooldown(member: discord.Member):
     return is_admin(member) or member.id in AI_COOLDOWN_BYPASS_USER_IDS
+
+
+# =========================
+# Génération Gemini (natif + Search)
+# =========================
+
+def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_urls: list):
+    client = get_gemini_client()
+    model = get_ai_model()
+
+    # Construction du contenu
+    contents = []
+
+    # Historique
+    for msg in conversation_messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
+        if not content:
+            continue
+        if role == "user":
+            contents.append(types.Content(role="user", parts=[types.Part(text=content)]))
+        elif role == "assistant":
+            contents.append(types.Content(role="model", parts=[types.Part(text=content)]))
+
+    # Message actuel (texte + images)
+    parts = [types.Part(text=user_text)]
+    for url in image_urls:
+        parts.append(types.Part.from_uri(file_uri=url, mime_type="image/jpeg"))  # Gemini gère bien les URLs Discord
+
+    contents.append(types.Content(role="user", parts=parts))
+
+    config = types.GenerateContentConfig(
+        system_instruction=system_prompt,
+        max_output_tokens=800,
+        tools=[types.Tool(google_search=types.GoogleSearch())],  # ← Recherche activée
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=config,
+    )
+
+    if not response or not response.text:
+        raise RuntimeError("Réponse Gemini vide")
+
+    return response.text.strip()
+
+
+# =========================
+# Génération Groq (ancien système)
+# =========================
+
+def generate_with_groq(messages: list):
+    client = get_openai_compatible_client()
+    response = client.chat.completions.create(
+        model=get_ai_model(),
+        messages=messages,
+        max_tokens=800,
+        temperature=1.2,
+    )
+    if not response.choices:
+        raise RuntimeError("Réponse Groq vide")
+    content = response.choices[0].message.content
+    if not content or not content.strip():
+        raise RuntimeError("Réponse Groq vide")
+    return content.strip()
+
+
+# =========================
+# Handler principal
+# =========================
 
 async def handle_ai(message: discord.Message, bot_user, client):
     global global_cooldown
@@ -203,29 +269,23 @@ async def handle_ai(message: discord.Message, bot_user, client):
 
     special_context = ""
     if message.author.id == LUIGI_USER_ID:
-        special_context = """
-La personne qui te parle est Luigi, ton créateur.
-Tu peux être sarcastique et taquin avec lui.
-"""
+        special_context = "La personne qui te parle est Luigi, ton créateur."
     elif message.author.id == KAMUI_USER_ID:
-        special_context = """
-La personne qui te parle est Kamui, le frère de Misty.
-Tu peux être sarcastique et taquin avec lui.
-"""
+        special_context = "La personne qui te parle est Kamui, le frère de Misty."
     elif message.author.id == MISTY_USER_ID:
-        special_context = """
-La personne qui te parle est Misty, ta maman.
-"""
+        special_context = "La personne qui te parle est Misty, ta maman."
 
     user_context = f"""
 Informations sur la personne qui te parle :
-- Pseudo affiché sur le serveur : {display_name}
-- Username Discord : {username}
-- Humeur actuelle du serveur : {mood}
+- Pseudo affiché : {display_name}
+- Username : {username}
+- Humeur du serveur : {mood}
 {special_context}
+
 Message reçu :
 {content}
-Tu peux utiliser son pseudo affiché parfois, mais pas systématiquement.
+
+Tu peux utiliser son pseudo parfois, mais pas systématiquement.
 Tu ne dois jamais écrire de mention avec @.
 """
 
@@ -249,44 +309,30 @@ Tu ne dois jamais écrire de mention avec @.
     if not conversation_messages:
         conversation_messages = get_conversation_messages(message.author.id)
 
+    # Images
+    image_urls = []
+    for attachment in message.attachments:
+        if attachment.content_type and attachment.content_type.startswith("image/"):
+            image_urls.append(attachment.url)
+
     try:
-        messages = [
-            {
-                "role": "system",
-                "content": prompt
-            }
-        ]
-        messages.extend(conversation_messages)
-
-        # === Gestion des images et GIFs ===
-        image_urls = []
-        for attachment in message.attachments:
-            if attachment.content_type and attachment.content_type.startswith("image/"):
-                image_urls.append(attachment.url)
-
-        if image_urls:
-            content_parts = [
-                {"type": "text", "text": user_context}
-            ]
-            for url in image_urls:
-                content_parts.append({
-                    "type": "image_url",
-                    "image_url": {"url": url}
-                })
-            messages.append({
-                "role": "user",
-                "content": content_parts
-            })
+        if AI_PROVIDER == "gemini":
+            reply = generate_with_gemini(
+                system_prompt=prompt,
+                conversation_messages=conversation_messages,
+                user_text=user_context,
+                image_urls=image_urls,
+            )
         else:
-            messages.append({
-                "role": "user",
-                "content": user_context
-            })
-
-        response = get_ai_client().chat.completions.create(
-            **build_ai_request_kwargs(messages)
-        )
-        reply = extract_reply(response)
+            # Mode Groq (ancien format)
+            messages = [{"role": "system", "content": prompt}]
+            messages.extend(conversation_messages)
+            if image_urls:
+                # Groq ne gère pas bien les images → on ignore
+                messages.append({"role": "user", "content": user_context})
+            else:
+                messages.append({"role": "user", "content": user_context})
+            reply = generate_with_groq(messages)
 
         if reply:
             if not bypass_cooldown:
