@@ -1,61 +1,17 @@
-import asyncio
-import random
 import discord
 
-from config import *
 
-
-async def set_random_status(client):
-    activities = []
-
-    for text in STATUSES:
-        activities.append(discord.CustomActivity(name=text))
-
-    for game in GAMES:
-        activities.append(discord.Game(name=game))
-
-    for watch in WATCHING:
-        activities.append(
-            discord.Activity(
-                type=discord.ActivityType.watching,
-                name=watch
-            )
-        )
-
-    for listen in LISTENING:
-        activities.append(
-            discord.Activity(
-                type=discord.ActivityType.listening,
-                name=listen
-            )
-        )
-
-    discord_statuses = [
-        discord.Status.online,
-        discord.Status.idle,
-        discord.Status.dnd
-    ]
-
-    activity = random.choice(activities)
-    status = random.choice(discord_statuses)
-
+async def clear_status(client):
+    await client.wait_until_ready()
     await client.change_presence(
-        status=status,
-        activity=activity
+        status=discord.Status.online,
+        activity=None
     )
 
 
 def start_status_loop(client):
-    async def change_status():
-        await client.wait_until_ready()
+    if getattr(client, "_status_clear_task_started", False):
+        return
 
-        while not client.is_closed():
-            await set_random_status(client)
-
-            delay_minutes = random.randint(
-                STATUS_CHANGE_MINUTES_MIN,
-                STATUS_CHANGE_MINUTES_MAX
-            )
-            await asyncio.sleep(delay_minutes * 60)
-
-    client.loop.create_task(change_status())
+    client._status_clear_task_started = True
+    client.loop.create_task(clear_status(client))

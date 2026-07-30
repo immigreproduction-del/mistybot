@@ -306,41 +306,25 @@ STATUS_CHANGE_MINUTES_MAX = 300
 # STATUTS CLASSIQUES
 # =========================
 
-STATUSES = [
-    "SYS_OBSERVE::ACTIVE",
-    "MISTY_CORE_LOCKED",
-    "ERR_HUMAN_INPUT",
-]
+STATUSES = []
 
 
 # =========================
 # JOUE À
 # =========================
 
-GAMES = [
-    "exec /bin/silence",
-    "run_behavior_scan",
-    "patch_human_behavior.exe",
-]
+GAMES = []
 
 
 # =========================
 # REGARDE
 # =========================
 
-WATCHING = [
-    "tcp://lost_packets",
-    "proc/zombie_threads",
-    "cam_ghost_feed_07",
-]
+WATCHING = []
 
 
 # =========================
 # ÉCOUTE
 # =========================
 
-LISTENING = [
-    "kernel_panic.wav",
-    "bzzzt... carrier lost",
-    "audio_input:null",
-]
+LISTENING = []

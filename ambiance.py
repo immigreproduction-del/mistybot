@@ -6,51 +6,21 @@ import discord
 from config import *
 from memory import contains_words, is_caps_abuse
 
+
 message_history = defaultdict(deque)
-last_global_observation_at = None
-last_channel_observation_at = {}
-last_user_observation_at = {}
 last_busy_chat_at = {}
 last_consecutive_talk_at = {}
 last_author_by_channel = {}
 consecutive_messages_by_channel = {}
 
-CALM_OBSERVATIONS = [
-    "Je vois.",
-    "Noté.",
-    "Étrange.",
-    "Le calme fait semblant.",
-]
-
-ACTIVE_OBSERVATIONS = [
-    "Vous parlez beaucoup, aujourd'hui.",
-    "Le serveur respire plus vite.",
-    "Je note le rythme.",
-    "Ça devient récurrent.",
-]
-
-NOISY_OBSERVATIONS = [
-    "Le bruit revient.",
-    "Vous fatiguez les murs.",
-    "Le silence était mieux.",
-    "Quelqu'un prend trop de place.",
-]
-
-SUSPECT_OBSERVATIONS = [
-    "Je garde une trace.",
-    "Comportement intéressant.",
-    "Tu deviens récurrent.",
-    "Le serveur a changé de ton.",
-]
-
 BUSY_CHAT_OBSERVATIONS = [
-    "On joue à celui qui ferme sa gueule sa mère est une pute ou quoi",
-    "Ça se voit que parler c'est gratuit",
+    "On joue \u00e0 celui qui ferme sa gueule sa m\u00e8re est une pute ou quoi",
+    "\u00c7a se voit que parler c'est gratuit",
 ]
 
 CONSECUTIVE_TALK_OBSERVATIONS = [
-    "Après, on n'a pas spécialement demandé",
-    "On n'a pas demandé",
+    "Apr\u00e8s, on n'a pas sp\u00e9cialement demand\u00e9",
+    "On n'a pas demand\u00e9",
     "Qui s'en fou ?",
 ]
 
@@ -154,7 +124,6 @@ async def maybe_send_chat_remark(message: discord.Message):
 
     now = discord.utils.utcnow()
     consecutive_count = _update_consecutive_talk(message)
-
     channel_id = message.channel.id
     channel_messages = _count_channel_messages(
         channel_id,
@@ -176,8 +145,8 @@ async def maybe_send_chat_remark(message: discord.Message):
             await message.channel.send(random.choice(BUSY_CHAT_OBSERVATIONS))
             last_busy_chat_at[channel_id] = now
             return
-        except Exception as e:
-            print(f"Erreur remarque salon actif : {e}")
+        except Exception as error:
+            print(f"Erreur remarque salon actif : {error}")
 
     if message.author.id == MISTY_USER_ID:
         return
@@ -193,10 +162,12 @@ async def maybe_send_chat_remark(message: discord.Message):
         )
     ):
         try:
-            await message.channel.send(random.choice(CONSECUTIVE_TALK_OBSERVATIONS))
+            await message.channel.send(
+                random.choice(CONSECUTIVE_TALK_OBSERVATIONS)
+            )
             last_consecutive_talk_at[message.author.id] = now
-        except Exception as e:
-            print(f"Erreur remarque messages consecutifs : {e}")
+        except Exception as error:
+            print(f"Erreur remarque messages consecutifs : {error}")
 
 
 def get_global_mood():
@@ -220,81 +191,3 @@ def get_global_mood():
         return "agite"
 
     return "calme"
-
-
-def _can_send_observation(message, now):
-    global last_global_observation_at
-
-    if last_global_observation_at:
-        age = (now - last_global_observation_at).total_seconds()
-        if age < MICRO_OBSERVATION_GLOBAL_COOLDOWN_SECONDS:
-            return False
-
-    channel_last = last_channel_observation_at.get(message.channel.id)
-    if channel_last:
-        age = (now - channel_last).total_seconds()
-        if age < MICRO_OBSERVATION_CHANNEL_COOLDOWN_SECONDS:
-            return False
-
-    user_last = last_user_observation_at.get(message.author.id)
-    if user_last:
-        age = (now - user_last).total_seconds()
-        if age < MICRO_OBSERVATION_USER_COOLDOWN_SECONDS:
-            return False
-
-    return True
-
-
-def _mark_observation(message, now):
-    global last_global_observation_at
-
-    last_global_observation_at = now
-    last_channel_observation_at[message.channel.id] = now
-    last_user_observation_at[message.author.id] = now
-
-
-def _pick_observation(mood):
-    if mood == "suspect":
-        return random.choice(SUSPECT_OBSERVATIONS)
-
-    if mood == "bruyant":
-        return random.choice(NOISY_OBSERVATIONS)
-
-    if mood == "agite":
-        return random.choice(ACTIVE_OBSERVATIONS)
-
-    return random.choice(CALM_OBSERVATIONS)
-
-
-async def maybe_send_micro_observation(message: discord.Message, bot_user):
-    if not ENABLE_AMBIANCE:
-        return
-
-    if message.author.bot or not message.guild:
-        return
-
-    if bot_user in message.mentions or message.role_mentions:
-        return
-
-    now = discord.utils.utcnow()
-    guild_id = message.guild.id
-    _prune_old_messages(guild_id, now)
-    entries = message_history[guild_id]
-
-    if len(entries) < MICRO_OBSERVATION_MIN_MESSAGES:
-        return
-
-    mood = get_global_mood()
-    chance = MICRO_OBSERVATION_ACTIVE_CHANCE if mood != "calme" else MICRO_OBSERVATION_CHANCE
-
-    if random.random() >= chance:
-        return
-
-    if not _can_send_observation(message, now):
-        return
-
-    try:
-        await message.channel.send(_pick_observation(mood))
-        _mark_observation(message, now)
-    except Exception as e:
-        print(f"Erreur micro-observation : {e}")

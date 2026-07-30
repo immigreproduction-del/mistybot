@@ -5,7 +5,6 @@ from discord import app_commands
 from ambiance import (
     observe_ambiance,
     maybe_send_chat_remark,
-    maybe_send_micro_observation,
 )
 from antispam import handle_antispam, reset_antispam_for_channel
 from config import AI_COOLDOWN_BYPASS_USER_IDS, PURGE_AFTER_MAX_MESSAGES
@@ -144,7 +143,11 @@ async def sendimg(
 
     try:
         file = await image.to_file()
-        await interaction.channel.send(content=message, file=file)
+        send_kwargs = {"file": file}
+        if message and message.strip():
+            send_kwargs["content"] = message.strip()
+
+        await interaction.channel.send(**send_kwargs)
         reset_antispam_for_channel(interaction.channel.id)
     except discord.HTTPException:
         await interaction.followup.send(
@@ -277,7 +280,6 @@ async def on_message(message):
         return
 
     await maybe_send_chat_remark(message)
-    await maybe_send_micro_observation(message, client.user)
     await handle_reactions(message)
     await handle_ai(message, client.user, client)
 
