@@ -1,6 +1,8 @@
 import os
 import time
 import traceback
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import discord
 from openai import OpenAI
 
@@ -301,7 +303,16 @@ Tu ne dois jamais écrire de mention avec @.
         memory_context = get_memory_context(message.author.id)
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
 
+    current_time = datetime.now(ZoneInfo("Europe/Paris")).strftime(
+        "%d/%m/%Y à %H:%M"
+    )
+
     prompt = prompt + "\n\n" + TECHNICAL_PROVIDER_PROMPT
+    prompt = prompt + (
+        "\n\nDate et heure actuelles (fuseau Europe/Paris) : "
+        + current_time
+        + ". Utilise cette information seulement si elle est pertinente."
+    )
     if permanent_memory_context:
         prompt = prompt + "\n\n" + permanent_memory_context
     if conversation_context:
