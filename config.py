@@ -85,7 +85,11 @@ SUSPICIOUS_LINK_WORDS = [
 # =========================
 
 ENABLE_MEMORY = True
-MEMORY_FILE = "memory.json"
+RAILWAY_VOLUME_MOUNT_PATH = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
+if RAILWAY_VOLUME_MOUNT_PATH:
+    MEMORY_FILE = os.path.join(RAILWAY_VOLUME_MOUNT_PATH, "memory.json")
+else:
+    MEMORY_FILE = "memory.json"
 
 INSULT_WORDS = [
     "fdp",
