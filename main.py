@@ -10,7 +10,11 @@ from antispam import handle_antispam, reset_antispam_for_channel
 from config import AI_COOLDOWN_BYPASS_USER_IDS, PURGE_AFTER_MAX_MESSAGES
 from status import start_status_loop
 from ai import handle_ai
-from memory import observe_message
+from memory import (
+    forget_user_memory,
+    observe_message,
+    remember_permanent_misty_memory,
+)
 from reactions import handle_reactions
 from security import handle_security
 from verification import VerificationStartView, send_verification_welcome
@@ -163,6 +167,18 @@ async def sendimg(
 
 
 @tree.command(
+    name="forget",
+    description="Efface ta memoire personnelle.",
+)
+async def forget(interaction: discord.Interaction):
+    forget_user_memory(interaction.user.id)
+    await interaction.response.send_message(
+        "C'est oublie.",
+        ephemeral=True
+    )
+
+
+@tree.command(
     name="purgeafter",
     description="Supprime les messages envoyes apres un message precis."
 )
@@ -271,6 +287,7 @@ async def on_message(message):
 
     print(f"Message reçu : {message.author} -> {message.content}")
 
+    remember_permanent_misty_memory(message.author.id, message.content)
     observe_ambiance(message)
 
     await observe_message(message, client.user, client)

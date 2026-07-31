@@ -16,6 +16,7 @@ from memory import (
     get_conversation_context,
     get_conversation_messages,
     get_memory_context,
+    get_permanent_memory_context,
     remember_conversation_exchange,
 )
 
@@ -262,6 +263,8 @@ async def handle_ai(message: discord.Message, bot_user, client):
     if not content:
         content = "Quelqu’un t’a mentionné."
 
+    permanent_memory_context = get_permanent_memory_context(MISTY_USER_ID)
+
     display_name = message.author.display_name
     username = message.author.name
     mood = get_global_mood()
@@ -299,6 +302,8 @@ Tu ne dois jamais écrire de mention avec @.
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
 
     prompt = prompt + "\n\n" + TECHNICAL_PROVIDER_PROMPT
+    if permanent_memory_context:
+        prompt = prompt + "\n\n" + permanent_memory_context
     if conversation_context:
         prompt = prompt + "\n\n" + conversation_context
     if channel_conversation_context:

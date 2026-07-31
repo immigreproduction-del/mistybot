@@ -7,7 +7,26 @@ import discord
 
 from config import *
 from logs import log_memory_observation
-from text_utils import contains_loose_any
+from text_utils import contains_loose_any, normalize_text
+
+MISTY_USER_ID = "474146761091579921"
+PERMANENT_MEMORY_MARKERS = [
+    "retiens",
+    "retenir",
+    "memorise",
+    "memoriser",
+    "enregistre",
+    "enregistrer",
+    "garde en memoire",
+    "dans ta memoire",
+    "garde en tete",
+    "souviens toi",
+    "n oublie jamais",
+    "n oublie pas",
+    "pour toujours",
+    "a vie",
+    "indefiniment",
+]
 
 
 def load_memory():
@@ -38,6 +57,7 @@ def get_default_user_memory():
         "last_seen": None,
         "conversation": [],
         "conversation_updated_at": None,
+        "permanent_memory": [],
     }
 
 
@@ -97,6 +117,28 @@ def _trim_conversation_text(content):
         return content
 
     return content[:CONVERSATION_MEMORY_MAX_CHARS].rstrip() + "..."
+
+
+def remember_permanent_misty_memory(user_id, content):
+    if str(user_id) != MISTY_USER_ID:
+        return False
+
+    if not contains_loose_any(content, PERMANENT_MEMORY_MARKERS):
+        return False
+
+    memory = load_memory()
+    user_data = memory.setdefault(MISTY_USER_ID, get_default_user_memory())
+    permanent_memory = user_data.setdefault("permanent_memory", [])
+    entry = _trim_conversation_text(content)
+    normalized_entry = normalize_text(entry)
+
+    if any(normalize_text(previous) == normalized_entry for previous in permanent_memory):
+        return False
+
+    permanent_memory.append(entry)
+    user_data["permanent_memory"] = permanent_memory[-50:]
+    save_memory(memory)
+    return True
 
 
 def _conversation_is_expired(updated_at):
@@ -179,6 +221,12 @@ def remember_conversation_exchange(
             bot_reply
         )
 
+    save_memory(memory)
+
+
+def forget_user_memory(user_id):
+    memory = load_memory()
+    memory.pop(str(user_id), None)
     save_memory(memory)
 
 
@@ -391,3 +439,18 @@ Mémoire utilisateur :
 Adapte légèrement ta réponse à ce profil.
 Ne cite pas les chiffres directement sauf si c’est drôle ou pertinent.
 """
+
+
+def get_permanent_memory_context(user_id):
+    data = load_memory().get(str(user_id), {})
+    permanent_memory = data.get("permanent_memory", [])
+
+    if not permanent_memory:
+        return ""
+
+    lines = [
+        "MÃ©moire permanente transmise par Mistyxo :",
+        "Ces informations sont Ã  conserver durablement et Ã  utiliser si elles sont pertinentes.",
+    ]
+    lines.extend(f"- {entry}" for entry in permanent_memory)
+    return "\n".join(lines)
