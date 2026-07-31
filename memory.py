@@ -225,8 +225,25 @@ def remember_conversation_exchange(
 
 
 def forget_user_memory(user_id):
+    """Efface la memoire temporaire du seul utilisateur cible.
+
+    La memoire permanente de Mistyxo est conservee volontairement. Les
+    conversations partagees par salon ne sont pas modifiees ici.
+    """
     memory = load_memory()
-    memory.pop(str(user_id), None)
+
+    user_key = str(user_id)
+    user_data = memory.get(user_key)
+    if user_data is None:
+        return
+
+    if user_key == MISTY_USER_ID:
+        permanent_memory = user_data.get("permanent_memory", [])
+        memory[user_key] = get_default_user_memory()
+        memory[user_key]["permanent_memory"] = permanent_memory
+    else:
+        memory.pop(user_key, None)
+
     save_memory(memory)
 
 
