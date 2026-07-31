@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import discord
 
 from config import *
-from logs import log_memory_observation
 from text_utils import contains_loose_any, normalize_text
 
 MISTY_USER_ID = "474146761091579921"
@@ -98,6 +97,8 @@ def update_user_memory(user_id, updates):
     if user_id not in memory:
         memory[user_id] = get_default_user_memory()
 
+    _reset_expired_behavior_memory(memory[user_id])
+
     for key, value in updates.items():
         memory[user_id][key] = memory[user_id].get(key, 0) + value
 
@@ -138,6 +139,33 @@ def remember_permanent_misty_memory(user_id, content):
     permanent_memory.append(entry)
     user_data["permanent_memory"] = permanent_memory[-50:]
     save_memory(memory)
+
+
+def _reset_expired_behavior_memory(user_data):
+    last_seen = user_data.get("last_seen")
+    if not last_seen:
+        return
+
+    try:
+        last_activity = datetime.fromisoformat(last_seen)
+    except ValueError:
+        return
+
+    if last_activity.tzinfo is None:
+        last_activity = last_activity.replace(tzinfo=timezone.utc)
+
+    elapsed = (datetime.now(timezone.utc) - last_activity).total_seconds()
+    if elapsed <= BEHAVIOR_MEMORY_TIMEOUT_SECONDS:
+        return
+
+    for field in (
+        "insults",
+        "aggressive_messages",
+        "caps_messages",
+        "spam_timeouts",
+        "behavior_score",
+    ):
+        user_data[field] = 0
     return True
 
 
@@ -245,6 +273,21 @@ def forget_user_memory(user_id):
         memory.pop(user_key, None)
 
     save_memory(memory)
+
+
+def reset_all_memory_except_permanent():
+    memory = load_memory()
+    misty_data = memory.get(MISTY_USER_ID, {})
+    permanent_memory = misty_data.get("permanent_memory", [])
+
+    if permanent_memory:
+        save_memory({
+            MISTY_USER_ID: {
+                "permanent_memory": permanent_memory,
+            }
+        })
+    else:
+        save_memory({})
 
 
 def get_conversation_context(user_id):
@@ -380,34 +423,13 @@ async def observe_message(message: discord.Message, bot_user, client):
         updates["insults"] = 1
         behavior_points += MEMORY_SCORE_INSULT
 
-        await log_memory_observation(
-            client,
-            message,
-            "Insulte détectée",
-            MEMORY_SCORE_INSULT
-        )
-
     if contains_words(content, AGGRESSIVE_WORDS):
         updates["aggressive_messages"] = 1
         behavior_points += MEMORY_SCORE_AGGRESSIVE
 
-        await log_memory_observation(
-            client,
-            message,
-            "Message agressif détecté",
-            MEMORY_SCORE_AGGRESSIVE
-        )
-
     if is_caps_abuse(content):
         updates["caps_messages"] = 1
         behavior_points += MEMORY_SCORE_CAPS
-
-        await log_memory_observation(
-            client,
-            message,
-            "Abus de majuscules détecté",
-            MEMORY_SCORE_CAPS
-        )
 
     if behavior_points > 0:
         updates["behavior_score"] = behavior_points

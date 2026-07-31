@@ -5,15 +5,21 @@ from discord import app_commands
 from ambiance import (
     observe_ambiance,
     maybe_send_chat_remark,
+    reset_ambiance_state,
 )
-from antispam import handle_antispam, reset_antispam_for_channel
+from antispam import (
+    handle_antispam,
+    reset_antispam_for_channel,
+    reset_antispam_state,
+)
 from config import AI_COOLDOWN_BYPASS_USER_IDS, PURGE_AFTER_MAX_MESSAGES
 from status import start_status_loop
-from ai import handle_ai
+from ai import handle_ai, reset_ai_state
 from memory import (
     forget_user_memory,
     observe_message,
     remember_permanent_misty_memory,
+    reset_all_memory_except_permanent,
 )
 from reactions import handle_reactions
 from security import handle_security
@@ -174,6 +180,36 @@ async def forget(interaction: discord.Interaction):
     forget_user_memory(interaction.user.id)
     await interaction.response.send_message(
         "C'est oublie.",
+        ephemeral=True
+    )
+
+
+@tree.command(
+    name="reset",
+    description="Remet Mistybot a zero sans effacer la memoire permanente de Mistyxo."
+)
+async def reset(interaction: discord.Interaction):
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(
+            "Commande inutilisable ici.",
+            ephemeral=True
+        )
+        return
+
+    if not can_use_admin_command(interaction.user):
+        await interaction.response.send_message(
+            "Commande reservee aux administrateurs.",
+            ephemeral=True
+        )
+        return
+
+    reset_all_memory_except_permanent()
+    reset_ambiance_state()
+    reset_antispam_state()
+    reset_ai_state()
+
+    await interaction.response.send_message(
+        "Mistybot a ete remis a zero. La memoire permanente de Mistyxo est intacte.",
         ephemeral=True
     )
 

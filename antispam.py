@@ -16,6 +16,12 @@ def reset_antispam_for_channel(channel_id):
     first_message_time_by_channel[channel_id] = None
 
 
+def reset_antispam_state():
+    last_author_by_channel.clear()
+    streak_by_channel.clear()
+    first_message_time_by_channel.clear()
+
+
 async def handle_antispam(message: discord.Message, client):
     if not message.guild:
         return

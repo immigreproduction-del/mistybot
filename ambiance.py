@@ -27,6 +27,14 @@ CONSECUTIVE_TALK_OBSERVATIONS = [
 MISTY_USER_ID = 474146761091579921
 
 
+def reset_ambiance_state():
+    message_history.clear()
+    last_busy_chat_at.clear()
+    last_consecutive_talk_at.clear()
+    last_author_by_channel.clear()
+    consecutive_messages_by_channel.clear()
+
+
 def _score_message(message):
     score = 0
     content = message.content

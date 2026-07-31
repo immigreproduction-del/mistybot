@@ -162,6 +162,12 @@ AI_FALLBACK_REPLIES = [
 ]
 
 
+def reset_ai_state():
+    global global_cooldown
+    user_cooldowns.clear()
+    global_cooldown = 0
+
+
 def is_admin(member: discord.Member):
     return member.guild_permissions.administrator
 
