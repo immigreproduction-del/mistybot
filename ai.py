@@ -211,6 +211,24 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
         max_output_tokens=800,
+        safety_settings=[
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+        ],
     )
 
     response = client.models.generate_content(
@@ -219,10 +237,36 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
         config=config,
     )
 
-    if not response or not response.text:
+    response_text = ""
+    if response:
+        try:
+            response_text = (response.text or "").strip()
+        except (AttributeError, ValueError):
+            response_text = ""
+
+        if not response_text:
+            for candidate in getattr(response, "candidates", []) or []:
+                content = getattr(candidate, "content", None)
+                for part in getattr(content, "parts", []) or []:
+                    part_text = getattr(part, "text", None)
+                    if part_text:
+                        response_text += part_text.strip()
+
+    if not response_text:
+        candidates = getattr(response, "candidates", []) or []
+        finish_reasons = [
+            str(getattr(candidate, "finish_reason", "unknown"))
+            for candidate in candidates
+        ]
+        prompt_feedback = getattr(response, "prompt_feedback", None)
+        print(
+            "Gemini response empty: "
+            f"finish_reason={finish_reasons or ['unknown']} "
+            f"prompt_feedback={prompt_feedback}"
+        )
         raise RuntimeError("Réponse Gemini vide")
 
-    return response.text.strip()
+    return response_text
 
 
 # =========================
