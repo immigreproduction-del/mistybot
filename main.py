@@ -18,6 +18,7 @@ from ai import handle_ai, reset_ai_state
 from memory import (
     forget_user_memory,
     observe_message,
+    remember_bot_channel_message,
     remember_permanent_misty_memory,
     reset_all_memory_except_permanent,
 )
@@ -100,7 +101,11 @@ async def sendmsg(interaction: discord.Interaction, message: str):
         )
         return
 
-    await interaction.channel.send(message)
+    sent_message = await interaction.channel.send(message)
+    remember_bot_channel_message(
+        interaction.channel.id,
+        sent_message.clean_content or message
+    )
     reset_antispam_for_channel(interaction.channel.id)
     await interaction.response.send_message(
         "Message envoyé.",
@@ -157,7 +162,12 @@ async def sendimg(
         if message and message.strip():
             send_kwargs["content"] = message.strip()
 
-        await interaction.channel.send(**send_kwargs)
+        sent_message = await interaction.channel.send(**send_kwargs)
+        ai_content = sent_message.clean_content or message or ""
+        if ai_content:
+            ai_content += "\n"
+        ai_content += "[Image envoyee par Mistybot]"
+        remember_bot_channel_message(interaction.channel.id, ai_content)
         reset_antispam_for_channel(interaction.channel.id)
     except discord.HTTPException:
         await interaction.followup.send(

@@ -252,6 +252,28 @@ def remember_conversation_exchange(
     save_memory(memory)
 
 
+def remember_bot_channel_message(channel_id, content):
+    """Ajoute un message autonome de Mistybot a la memoire partagee du salon."""
+    if not ENABLE_MEMORY or not content:
+        return
+
+    memory = load_memory()
+    channels = memory.setdefault("_channels", {})
+    channel_key = str(channel_id)
+    channel_data = channels.setdefault(channel_key, get_default_channel_memory())
+    conversation = _get_active_conversation(channel_data)
+
+    conversation.append({
+        "speaker": "Mistybot",
+        "user": "",
+        "bot": _trim_conversation_text(content),
+        "bot_only": True,
+    })
+    channel_data["conversation"] = conversation[-CONVERSATION_MEMORY_MAX_EXCHANGES:]
+    channel_data["conversation_updated_at"] = datetime.now(timezone.utc).isoformat()
+    save_memory(memory)
+
+
 def forget_user_memory(user_id):
     """Efface la memoire temporaire du seul utilisateur cible.
 
@@ -324,6 +346,10 @@ def get_channel_conversation_context(channel_id):
     ]
 
     for exchange in conversation:
+        if exchange.get("bot_only"):
+            lines.append(f"- Tu as envoye : {exchange.get('bot', '')}")
+            continue
+
         speaker = exchange.get("speaker", "Quelqu'un")
         lines.append(f"- {speaker} a dit : {exchange.get('user', '')}")
         lines.append(f"- Tu as répondu : {exchange.get('bot', '')}")
@@ -365,6 +391,15 @@ def get_channel_conversation_messages(channel_id):
     messages = []
 
     for exchange in conversation:
+        if exchange.get("bot_only"):
+            bot_reply = exchange.get("bot")
+            if bot_reply:
+                messages.append({
+                    "role": "assistant",
+                    "content": bot_reply
+                })
+            continue
+
         speaker = exchange.get("speaker", "Quelqu'un")
         user_message = exchange.get("user")
         bot_reply = exchange.get("bot")
