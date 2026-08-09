@@ -2,6 +2,7 @@ import os
 import time
 import traceback
 from datetime import datetime
+from mimetypes import guess_type
 from zoneinfo import ZoneInfo
 import discord
 from openai import OpenAI
@@ -184,7 +185,7 @@ def can_bypass_ai_cooldown(member: discord.Member):
 # Génération Gemini (SDK natif - sans Search)
 # =========================
 
-def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_urls: list):
+def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_parts: list):
     client = get_gemini_client()
     model = get_ai_model()
 
@@ -203,8 +204,13 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
 
     # Message actuel (texte + images)
     parts = [types.Part(text=user_text)]
-    for url in image_urls:
-        parts.append(types.Part.from_uri(file_uri=url, mime_type="image/jpeg"))
+    for image in image_parts:
+        parts.append(
+            types.Part.from_bytes(
+                data=image["data"],
+                mime_type=image["mime_type"]
+            )
+        )
 
     contents.append(types.Content(role="user", parts=parts))
 
@@ -378,11 +384,26 @@ Tu ne dois jamais écrire de mention avec @.
     if not conversation_messages:
         conversation_messages = get_conversation_messages(message.author.id)
 
-    # Images
-    image_urls = []
+    # Images : envoyer les octets Discord a Gemini avec leur vrai MIME type.
+    image_parts = []
     for attachment in message.attachments:
-        if attachment.content_type and attachment.content_type.startswith("image/"):
-            image_urls.append(attachment.url)
+        mime_type = (attachment.content_type or "").split(";", 1)[0].strip().lower()
+        if not mime_type:
+            mime_type, _ = guess_type(attachment.filename)
+        if not mime_type or not mime_type.startswith("image/"):
+            continue
+
+        try:
+            image_data = await attachment.read()
+        except discord.HTTPException as error:
+            print(f"Impossible de telecharger l'image Discord : {error}")
+            continue
+
+        if image_data:
+            image_parts.append({
+                "data": image_data,
+                "mime_type": mime_type,
+            })
 
     try:
         if AI_PROVIDER == "gemini":
@@ -390,7 +411,7 @@ Tu ne dois jamais écrire de mention avec @.
                 system_prompt=prompt,
                 conversation_messages=conversation_messages,
                 user_text=user_context,
-                image_urls=image_urls,
+                image_parts=image_parts,
             )
         else:
             messages = [{"role": "system", "content": prompt}]
