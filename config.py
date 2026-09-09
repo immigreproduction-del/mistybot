@@ -18,7 +18,7 @@ def get_env_int(name, default):
 # ANTI SPAM
 # =========================
 
-MESSAGE_LIMIT = 5
+MESSAGE_LIMIT = 10
 TIME_WINDOW_SECONDS = 180
 TIMEOUT_MINUTES = 2
 
