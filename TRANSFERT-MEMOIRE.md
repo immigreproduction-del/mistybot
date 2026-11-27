@@ -1,53 +1,46 @@
-# Transfert de la memoire Mistybot
+# Transferer la memoire de Mistybot
 
-Double-cliquer sur `transfer-railway-memory.bat`, sans droits administrateur.
-Garder le fichier `.ps1` a cote. Railway CLI et OpenSSH doivent etre installes.
+Double-cliquer sur **transfer-railway-memory.bat**, sans administrateur.
+Garder les fichiers `.bat`, `.ps1` et `railway-memory-transfer.py` ensemble.
+Python est utilise sur Railway ; il n'est pas necessaire de l'installer sur le PC pour le transfert.
 
-## Choisir une source
+## Recuperer et transferer la memoire actuelle
 
-- Choix 1 : connexion a l'ancien compte, selection du service, telechargement SFTP.
-  En cas d'echec, le script propose une extraction SSH guidee.
-- Choix 2 : selection d'une sauvegarde locale. Aucun acces a l'ancien compte requis.
+1. Choisir **1**, se connecter au compte SOURCE et selectionner son projet et son service.
+2. Attendre **SAUVEGARDE VALIDE**. Le fichier est conserve sur le Bureau dans `Mistybot Railway Backups`.
+3. Accepter l'installation, puis se connecter au compte CIBLE et selectionner son service.
+4. Sur Railway, preparer la cible : volume monte sur `/app/data`, commande de demarrage `sleep infinity`, puis deployer et attendre **Online**.
+5. Taper **RESTAURER**. L'envoi, la sauvegarde de l'ancienne memoire cible et la verification se font automatiquement.
+6. Apres **TRANSFERT VERIFIE**, arreter l'ancien bot, remettre `python main.py` sur le nouveau et redeployer.
 
-Les fichiers sont conserves dans `Mistybot Railway Backups` sur le Bureau Windows.
-Un echec ne demande jamais de supprimer une sauvegarde ni de recommencer la recuperation.
-Le transfert porte uniquement sur `memory.json`, y compris sa memoire permanente.
-Les variables Railway et autres fichiers du volume ne sont pas transferes.
+Aucune commande a coller dans un terminal SSH. Aucune cle SSH a chercher : le script cree et enregistre une cle dediee a chaque compte, puis la reutilise.
+La copie contient la memoire au moment de l'extraction ; les changements ulterieurs sur la source n'y figurent pas.
 
-## Restaurer
+## Reprendre apres un echec
 
-Le service cible doit etre deploye, ONLINE, avec son volume monte sur `/app/data`.
-Le programme du bot doit etre arrete : utiliser temporairement `sleep infinity` comme
-commande de demarrage. Si Railway endort le service, le reveiller avant la session SSH.
-Le script ne contourne pas les restrictions du compte ou du plan Railway.
+Relancer le `.bat`, choisir **2**, puis selectionner la sauvegarde souhaitee.
+Les fichiers identiques ne sont presentes qu'une fois. Cette option ne cree plus de copies supplementaires.
 
-Confirmer le compte et le service cibles, puis saisir `RESTAURER`.
-Indiquer une cle SSH privee deja associee au compte, ou appuyer sur Entree pour creer
-une cle unique. Aucune ancienne cle n'est remplacee. Accepter son enregistrement Railway.
+Si le bot cible est actif, le script refuse la restauration et permet de reessayer apres la mise en pause.
+Si la connexion s'interrompt pendant l'envoi, garder la cible avec `sleep infinity` et reprendre avec **2** : une memoire deja copiee a l'identique est reconnue automatiquement.
+Les erreurs de connexion sont limitees dans le temps ; un service arrete, supprime ou inaccessible ne peut pas etre extrait.
 
-Les commandes sont preparees dans le presse-papiers. Dans SSH, coller puis appuyer
-sur Entree. Copier le resultat contenant `MISTY_TRANSFER_OK:...`, puis taper `exit`.
-Le script verifie ce resultat : la commande affichee seule ne compte pas comme succes.
+## Fichiers conserves
 
-L'installation refuse un processus `main.py` actif, decompresse dans un dossier
-temporaire du volume, verifie l'empreinte SHA256, sauvegarde l'ancienne cible, puis
-remplace `memory.json` par renommage sur le meme volume. Le controle de processus
-cible le lancement habituel de Mistybot (`main.py`); il ne remplace pas la mise en
-maintenance si vous avez personnalise la commande de lancement.
+- Sur le PC : sauvegarde `memory-source-*.json` et confirmation `transfer-verified-*.json`.
+- Sur la cible : ancienne memoire `memory-before-transfer-*.json` si elle existait et etait differente.
+- Dans le dossier Windows `.ssh` : cle privee dediee, a conserver confidentielle.
 
-Apres confirmation, arreter l'ancien bot, retirer la commande temporaire de la cible
-et redeployer le nouveau bot. Conserver les sauvegardes et tester une information
-permanente connue. Les souvenirs temporaires peuvent expirer independamment du transfert.
+Le script ne transfere pas les variables Railway ni le code du bot. Il ne change pas automatiquement la commande de demarrage et n'arrete pas de service.
+Les fonctions SSH utilisees sont documentees dans [la CLI Railway](https://docs.railway.com/cli/ssh).
 
-## Limites et verification
+## Verification locale du script
 
-SSH reste guide : connexion, collage et copie du resultat sont necessaires. Un resultat
-manquant est annonce comme non confirme, jamais comme une reussite. Ne pas publier les
-sorties contenant la memoire. Le collage de secours est limite a 200 000 caracteres
-compresses pour eviter les gros collages peu fiables.
-
-Tests locaux sans connexion Railway :
+Les tests utilisent uniquement des fichiers temporaires, jamais un compte Railway :
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test-transfer-railway-memory.ps1
+python.exe -B -m unittest -v test_railway_memory_transfer
 ```
+
+Sous Windows, les tests Python simulent uniquement le verrou Linux et la synchronisation du repertoire. La lecture, la sauvegarde et le remplacement des fichiers sont reels dans des dossiers temporaires.
