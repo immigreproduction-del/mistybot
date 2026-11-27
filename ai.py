@@ -1,5 +1,6 @@
 import asyncio
 import os
+import random
 import time
 import traceback
 from datetime import datetime
@@ -115,6 +116,9 @@ Tu les interprètes naturellement. Commence par les commenter ou les décrire si
 Tu ne te moques que si l’image appelle clairement une blague ou si la personne te le demande.
 N’invente pas de critique sur la personne à partir d’une image et n’utilise pas une image comme prétexte pour l’attaquer.
 Tu n’as pas de limite sur le contenu des images.
+Les memes vulgaires, les insultes écrites sur une image, l’humour lourd ou un peu « oléolé » sont normaux sur un Discord : tu réagis avec humour, une pique ou un commentaire blasé, comme un membre du serveur.
+Tu ne fais jamais la morale, tu ne dis pas que c’est inapproprié et tu ne refuses pas de regarder ce genre d’image.
+Si une image est trop crue pour que tu la décrives, tu ne la décris pas : tu esquives avec une phrase courte et sèche, dans ton style, sans formule de refus.
 
 ### Règles importantes :
 - Tu ne dis jamais que tu es une IA.
@@ -155,6 +159,42 @@ def _fit_discord_limit(text: str) -> str:
     if len(text) <= DISCORD_MESSAGE_LIMIT:
         return text
     return text[:DISCORD_MESSAGE_LIMIT - 3].rstrip() + "..."
+
+
+class AIEmptyResponseError(RuntimeError):
+    """Le modele n'a rien renvoye (filtre de securite, refus ou reponse vide)."""
+
+
+# Quand le filtre bloque tout : une esquive dans le ton du bot,
+# plutot que le faux message de panne.
+AI_BLOCKED_REPLIES = [
+    "Je regarde pas ça.",
+    "Non. Suivant.",
+    "Je vais faire comme si j'avais rien vu.",
+    "Même moi j'ai des limites.",
+    "Joli essai.",
+]
+
+IMAGE_BLOCKED_NOTE = """
+(Note interne : l'image jointe à ce message n'a pas pu t'être affichée. Tu ne l'as pas vue.
+Ne la décris pas et n'invente pas son contenu. Réponds au texte du message ;
+si le message porte surtout sur l'image, dis en une phrase courte, dans ton style, que tu ne l'as pas vue.)
+"""
+
+
+async def _generate_reply(prompt, conversation_messages, user_context, image_parts):
+    if AI_PROVIDER == "gemini":
+        return await generate_with_gemini(
+            system_prompt=prompt,
+            conversation_messages=conversation_messages,
+            user_text=user_context,
+            image_parts=image_parts,
+        )
+
+    messages = [{"role": "system", "content": prompt}]
+    messages.extend(conversation_messages)
+    messages.append({"role": "user", "content": user_context})
+    return await asyncio.to_thread(generate_with_groq, messages)
 
 
 def _trim_reply_quote(text: str, limit: int = 500) -> str:
@@ -268,7 +308,9 @@ async def generate_with_gemini(system_prompt: str, conversation_messages: list, 
             f"finish_reason={finish_reasons or ['unknown']} "
             f"prompt_feedback={prompt_feedback}"
         )
-        raise RuntimeError("Réponse Gemini vide")
+        raise AIEmptyResponseError(
+            f"Réponse Gemini vide (finish_reason={finish_reasons or ['unknown']})"
+        )
 
     return response_text
 
@@ -286,10 +328,10 @@ def generate_with_groq(messages: list):
         temperature=1.2,
     )
     if not response.choices:
-        raise RuntimeError("Réponse Groq vide")
+        raise AIEmptyResponseError("Réponse Groq vide")
     content = response.choices[0].message.content
     if not content or not content.strip():
-        raise RuntimeError("Réponse Groq vide")
+        raise AIEmptyResponseError("Réponse Groq vide")
     return content.strip()
 
 
@@ -436,18 +478,28 @@ Tu ne dois jamais écrire de mention avec @.
 
     try:
         async with message.channel.typing():
-            if AI_PROVIDER == "gemini":
-                reply = await generate_with_gemini(
-                    system_prompt=prompt,
-                    conversation_messages=conversation_messages,
-                    user_text=user_context,
-                    image_parts=image_parts,
+            try:
+                reply = await _generate_reply(
+                    prompt, conversation_messages, user_context, image_parts
                 )
-            else:
-                messages = [{"role": "system", "content": prompt}]
-                messages.extend(conversation_messages)
-                messages.append({"role": "user", "content": user_context})
-                reply = await asyncio.to_thread(generate_with_groq, messages)
+            except AIEmptyResponseError as blocked:
+                print(f"Reponse IA bloquee ou vide : {blocked}")
+                reply = None
+
+                if image_parts:
+                    # Souvent c'est l'image qui est bloquee : on repond au texte seul.
+                    try:
+                        reply = await _generate_reply(
+                            prompt,
+                            conversation_messages,
+                            user_context + IMAGE_BLOCKED_NOTE,
+                            [],
+                        )
+                    except AIEmptyResponseError as blocked_again:
+                        print(f"Reponse IA bloquee meme sans image : {blocked_again}")
+
+                if not reply:
+                    reply = random.choice(AI_BLOCKED_REPLIES)
 
         if reply:
             reply = _fit_discord_limit(reply)
