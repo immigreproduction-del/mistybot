@@ -1,33 +1,59 @@
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\transfer-railway-memory.ps1" -LibraryOnly
-$testFolder = Join-Path ([IO.Path]::GetTempPath()) ('misty-transfer-test-' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $testFolder | Out-Null
-$source = Join-Path $testFolder 'source.json'
+$python = (Get-Command python.exe -ErrorAction Stop).Source
+$folder = Join-Path ([IO.Path]::GetTempPath()) ('misty-test-' + [guid]::NewGuid().ToString('N'))
+$null = New-Item -ItemType Directory -Path $folder
+
+function Assert-Test {
+    param([bool]$Value, [string]$Message)
+    if (-not $Value) { throw $Message }
+}
+
+$arguments = @('', 'C:\folder with spaces\', 'a"b', 'backslash\"quote', 'simple')
+$reply = Invoke-Captured $python (@('-c', 'import sys,json; print(json.dumps(sys.argv[1:]))') + $arguments)
+Assert-Test ($reply.ExitCode -eq 0) 'Native quoting failed.'
+$decoded = $reply.Output | ConvertFrom-Json
+Assert-Test ($decoded.Count -eq $arguments.Count) 'Empty argument lost.'
+for ($i = 0; $i -lt $arguments.Count; $i++) {
+    Assert-Test ($decoded[$i] -ceq $arguments[$i]) "Argument $i changed."
+}
+
+$stdin = "import sys`nprint('MISTY_RESULT:' + 'x' * 200000)`nsys.stderr.write('stderr-test')`n"
+$reply = Invoke-Captured $python @('-') $stdin
+Assert-Test ($reply.ExitCode -eq 0 -and $reply.Output.StartsWith('MISTY_RESULT:')) 'stdin or output corrupted.'
+Assert-Test ($reply.Output.Length -gt 200000 -and $reply.Error -eq 'stderr-test') 'Large output or stderr lost.'
+$reply = Invoke-Captured $python @('-c', 'import os; print(os.getcwd())')
+Assert-Test ($reply.Output.Trim() -eq (Get-Location).ProviderPath) 'Working directory lost.'
+
+$key = Join-Path $folder 'key with spaces'
+$reply = Invoke-Captured (Get-Command ssh-keygen.exe).Source @('-t', 'ed25519', '-f', $key, '-N', '', '-C', 'local-test-only')
+Assert-Test ($reply.ExitCode -eq 0 -and (Test-Path -LiteralPath "$key.pub")) "Non-interactive key generation failed: $($reply.Error)"
+
+$receipt = 'MISTY_RESULT:{"ok":true,"operation":"restore","transfer_id":"test-id","sha256":"abc"}'
+$result = Read-TransferResult $receipt 'restore' 'test-id'
+Assert-Test ($result.sha256 -eq 'abc') 'Receipt rejected.'
+foreach ($bad in @('no result', ($receipt + "`n" + $receipt), $receipt.Replace('test-id', 'other-id'), $receipt.Replace('true', 'false'))) {
+    $rejected = $false
+    try { $null = Read-TransferResult $bad 'restore' 'test-id' } catch { $rejected = $true }
+    Assert-Test $rejected 'Invalid receipt accepted.'
+}
+
+$source = Join-Path $folder 'source.json'
 [IO.File]::WriteAllText($source, '{"474146761091579921":{"permanent_memory":["test"]}}')
 $hash = Assert-MemoryFile $source
-$commands = Get-InstallCommands $source 'test123'
-$parts = [regex]::Matches($commands, "printf '%s' '([A-Za-z0-9+/=]+)'")
-$payload = ($parts | ForEach-Object { $_.Groups[1].Value }) -join ''
-$compressed = [IO.MemoryStream]::new([Convert]::FromBase64String($payload))
-$gzip = [IO.Compression.GZipStream]::new($compressed, [IO.Compression.CompressionMode]::Decompress)
-$reader = [IO.StreamReader]::new($gzip)
-try { $decoded = $reader.ReadToEnd() } finally { $reader.Dispose(); $compressed.Dispose() }
-if ($decoded -cne [IO.File]::ReadAllText($source)) { throw 'Payload corrompu.' }
-if (-not (Test-InstallReceipt "MISTY_TRANSFER_OK:test123:$hash" 'test123' $hash)) { throw 'Confirmation refusee.' }
-if (Test-InstallReceipt "echo MISTY_TRANSFER_OK:test123:$hash" 'test123' $hash) { throw 'Commande confondue avec une confirmation.' }
-if (Test-InstallReceipt "MISTY_TRANSFER_OK:autre:$hash" 'test123' $hash) { throw 'Ancienne confirmation acceptee.' }
-$encoded = [Convert]::ToBase64String([IO.File]::ReadAllBytes($source))
-$receipt = "MISTY_SOURCE_BEGIN`n$encoded`nMISTY_SOURCE_END`n$hash  /tmp/test`n"
-$destination = Join-Path $testFolder 'import.json'
-Import-SourceReceipt $receipt $destination
-if ((Assert-MemoryFile $destination) -ne $hash) { throw 'Import different.' }
+$export = [pscustomobject]@{data=[Convert]::ToBase64String([IO.File]::ReadAllBytes($source)); sha256=$hash}
+$destination = Join-Path $folder 'received.json'
+Save-Export $export $destination
+Assert-Test ((Assert-MemoryFile $destination) -ceq $hash) 'Export changed.'
+$export.sha256 = '0' * 64
+$badDestination = Join-Path $folder 'corrupt.json'
 $rejected = $false
-try { Import-SourceReceipt ($receipt.Replace($hash, ('0' * 64))) (Join-Path $testFolder 'bad.json') } catch { $rejected = $true }
-if (-not $rejected) { throw 'Corruption acceptee.' }
-$invalid = Join-Path $testFolder 'invalid.json'
-[IO.File]::WriteAllText($invalid, '[]')
+try { Save-Export $export $badDestination } catch { $rejected = $true }
+Assert-Test ($rejected -and -not (Test-Path $badDestination)) 'Corrupt export accepted.'
+
 $rejected = $false
-try { Assert-MemoryFile $invalid | Out-Null } catch { $rejected = $true }
-if (-not $rejected) { throw 'Mauvaise structure acceptee.' }
-Write-Host 'OK : compression, import, empreintes, confirmations, rejet des fichiers invalides.'
-Write-Host "Fixtures de test : $testFolder"
+try { $null = Invoke-Captured $python @('-c', 'import time; time.sleep(15)') -TimeoutSeconds 1 } catch { $rejected = $true }
+Assert-Test $rejected 'Timeout not enforced.'
+
+Write-Host 'OK : Windows arguments, empty passphrase, stdin, large output, working directory, receipts, hashes, timeout.'
+Write-Host "Local test fixtures: $folder"

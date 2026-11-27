@@ -36,7 +36,17 @@ intents.members = True
 intents.reactions = True
 intents.guilds = True
 
-client = discord.Client(intents=intents)
+# Par defaut, Mistybot ne peut jamais pinger @everyone/@here ni un role.
+# Seules les commandes admin (/sendmsg, /sendimg) levent cette limite.
+client = discord.Client(
+    intents=intents,
+    allowed_mentions=discord.AllowedMentions(
+        everyone=False,
+        roles=False,
+        users=True,
+        replied_user=True,
+    ),
+)
 tree = app_commands.CommandTree(client)
 
 
@@ -101,7 +111,10 @@ async def sendmsg(interaction: discord.Interaction, message: str):
         )
         return
 
-    sent_message = await interaction.channel.send(message)
+    sent_message = await interaction.channel.send(
+        message,
+        allowed_mentions=discord.AllowedMentions.all()
+    )
     remember_bot_channel_message(
         interaction.channel.id,
         sent_message.clean_content or message
@@ -158,7 +171,10 @@ async def sendimg(
 
     try:
         file = await image.to_file()
-        send_kwargs = {"file": file}
+        send_kwargs = {
+            "file": file,
+            "allowed_mentions": discord.AllowedMentions.all(),
+        }
         if message and message.strip():
             send_kwargs["content"] = message.strip()
 
@@ -312,11 +328,17 @@ async def on_ready():
         client.add_view(VerificationStartView())
         client._verification_view_added = True
 
-    await tree.sync()
+    # on_ready peut se relancer a chaque reconnexion : on ne synchronise qu'une fois.
+    if not getattr(client, "_commands_synced", False):
+        # Commandes uniquement par serveur (instantane). Les enregistrer aussi en
+        # global les faisait apparaitre en double dans Discord.
+        for guild in client.guilds:
+            tree.copy_global_to(guild=guild)
+            await tree.sync(guild=guild)
 
-    for guild in client.guilds:
-        tree.copy_global_to(guild=guild)
-        await tree.sync(guild=guild)
+        tree.clear_commands(guild=None)
+        await tree.sync()
+        client._commands_synced = True
 
     start_status_loop(client)
 
@@ -333,7 +355,7 @@ async def on_message(message):
 
     print(f"Message reçu : {message.author} -> {message.content}")
 
-    remember_permanent_misty_memory(message.author.id, message.content)
+    remember_permanent_misty_memory(message, client.user)
     observe_ambiance(message)
 
     await observe_message(message, client.user, client)

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 import traceback
@@ -137,6 +138,24 @@ AI_FALLBACK_REPLIES = [
 ]
 
 
+# Le texte genere ne doit pinger personne (ni @everyone, ni role, ni membre),
+# meme si quelqu'un pousse le modele a ecrire une mention.
+AI_ALLOWED_MENTIONS = discord.AllowedMentions(
+    everyone=False,
+    roles=False,
+    users=False,
+    replied_user=True,
+)
+
+DISCORD_MESSAGE_LIMIT = 2000
+
+
+def _fit_discord_limit(text: str) -> str:
+    if len(text) <= DISCORD_MESSAGE_LIMIT:
+        return text
+    return text[:DISCORD_MESSAGE_LIMIT - 3].rstrip() + "..."
+
+
 def reset_ai_state():
     global global_cooldown
     user_cooldowns.clear()
@@ -155,7 +174,7 @@ def can_bypass_ai_cooldown(member: discord.Member):
 # Génération Gemini (SDK natif - sans Search)
 # =========================
 
-def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_parts: list):
+async def generate_with_gemini(system_prompt: str, conversation_messages: list, user_text: str, image_parts: list):
     client = get_gemini_client()
     model = get_ai_model()
 
@@ -207,7 +226,8 @@ def generate_with_gemini(system_prompt: str, conversation_messages: list, user_t
         ],
     )
 
-    response = client.models.generate_content(
+    # Version async : le bot continue de moderer pendant que Gemini repond.
+    response = await client.aio.models.generate_content(
         model=model,
         contents=contents,
         config=config,
@@ -328,7 +348,9 @@ Tu ne dois jamais écrire de mention avec @.
     channel_conversation_context = get_channel_conversation_context(message.channel.id)
 
     if is_misty:
-        prompt = MISTY_PROMPT
+        # Le prompt dedie a Misty a ete retire : elle a le prompt normal,
+        # sans le profil comportemental (score d'insultes, etc.).
+        prompt = SYSTEM_PROMPT
     else:
         memory_context = get_memory_context(message.author.id)
         prompt = SYSTEM_PROMPT + "\n\n" + memory_context
@@ -376,24 +398,26 @@ Tu ne dois jamais écrire de mention avec @.
             })
 
     try:
-        if AI_PROVIDER == "gemini":
-            reply = generate_with_gemini(
-                system_prompt=prompt,
-                conversation_messages=conversation_messages,
-                user_text=user_context,
-                image_parts=image_parts,
-            )
-        else:
-            messages = [{"role": "system", "content": prompt}]
-            messages.extend(conversation_messages)
-            messages.append({"role": "user", "content": user_context})
-            reply = generate_with_groq(messages)
+        async with message.channel.typing():
+            if AI_PROVIDER == "gemini":
+                reply = await generate_with_gemini(
+                    system_prompt=prompt,
+                    conversation_messages=conversation_messages,
+                    user_text=user_context,
+                    image_parts=image_parts,
+                )
+            else:
+                messages = [{"role": "system", "content": prompt}]
+                messages.extend(conversation_messages)
+                messages.append({"role": "user", "content": user_context})
+                reply = await asyncio.to_thread(generate_with_groq, messages)
 
         if reply:
+            reply = _fit_discord_limit(reply)
             if not bypass_cooldown:
                 user_cooldowns[message.author.id] = now
                 global_cooldown = now
-            await message.reply(reply)
+            await message.reply(reply, allowed_mentions=AI_ALLOWED_MENTIONS)
             reset_antispam_for_channel(message.channel.id)
             remember_conversation_exchange(
                 message.author.id,
@@ -407,7 +431,7 @@ Tu ne dois jamais écrire de mention avec @.
         traceback.print_exc()
         try:
             fallback_reply = AI_FALLBACK_REPLIES[int(now) % len(AI_FALLBACK_REPLIES)]
-            await message.reply(fallback_reply)
+            await message.reply(fallback_reply, allowed_mentions=AI_ALLOWED_MENTIONS)
             reset_antispam_for_channel(message.channel.id)
             remember_conversation_exchange(
                 message.author.id,
