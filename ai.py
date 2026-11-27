@@ -21,6 +21,7 @@ from memory import (
     get_conversation_messages,
     get_memory_context,
     get_permanent_memory_context,
+    mentions_bot,
     remember_conversation_exchange,
 )
 
@@ -156,6 +157,13 @@ def _fit_discord_limit(text: str) -> str:
     return text[:DISCORD_MESSAGE_LIMIT - 3].rstrip() + "..."
 
 
+def _trim_reply_quote(text: str, limit: int = 500) -> str:
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "..."
+
+
 def reset_ai_state():
     global global_cooldown
     user_cooldowns.clear()
@@ -289,17 +297,37 @@ def generate_with_groq(messages: list):
 # Handler principal
 # =========================
 
-async def handle_ai(message: discord.Message, bot_user, client):
+async def get_replied_bot_message(message: discord.Message, bot_user):
+    """Renvoie le message de Mistybot auquel ce message repond, sinon None."""
+    reference = message.reference
+    if reference is None or reference.message_id is None:
+        return None
+
+    replied = reference.resolved or reference.cached_message
+    if isinstance(replied, discord.DeletedReferencedMessage):
+        return None
+
+    if replied is None:
+        if reference.channel_id != message.channel.id:
+            return None
+        try:
+            replied = await message.channel.fetch_message(reference.message_id)
+        except discord.HTTPException:
+            return None
+
+    if replied.author.id != bot_user.id:
+        return None
+
+    return replied
+
+
+async def handle_ai(message: discord.Message, bot_user, client, replied_bot_message=None):
     global global_cooldown
     if message.author.bot:
         return
 
-    bot_is_mentioned = bot_user in message.mentions
-    role_is_mentioned = any(
-        role.name.lower() == bot_user.name.lower()
-        for role in message.role_mentions
-    )
-    if not bot_is_mentioned and not role_is_mentioned:
+    # Le bot repond quand on le mentionne, ou quand on repond a un de ses messages.
+    if not mentions_bot(message, bot_user) and replied_bot_message is None:
         return
 
     now = time.time()
@@ -314,6 +342,15 @@ async def handle_ai(message: discord.Message, bot_user, client):
     content = message.clean_content.replace(f"@{bot_user.name}", "").strip()
     if not content:
         content = "Quelqu’un t’a mentionné."
+
+    reply_context = ""
+    if replied_bot_message is not None:
+        replied_text = _trim_reply_quote(replied_bot_message.clean_content)
+        if replied_text:
+            reply_context = (
+                "\nLa personne répond à ce message que tu avais envoyé :\n"
+                f"« {replied_text} »\n"
+            )
 
     permanent_memory_context = get_permanent_memory_context(MISTY_USER_ID)
 
@@ -335,7 +372,7 @@ Informations sur la personne qui te parle :
 - Username : {username}
 - Humeur du serveur : {mood}
 {special_context}
-
+{reply_context}
 Message reçu :
 {content}
 

@@ -1,7 +1,12 @@
 import asyncio
+import itertools
 import os
 import sys
+import tempfile
 from types import SimpleNamespace
+
+# La simulation ecrit dans un dossier temporaire, jamais dans le vrai memory.json.
+os.environ["RAILWAY_VOLUME_MOUNT_PATH"] = tempfile.mkdtemp(prefix="mistybot-sim-")
 
 from ambiance import (
     _count_channel_messages,
@@ -9,6 +14,7 @@ from ambiance import (
     observe_ambiance,
 )
 from antispam import handle_antispam
+from config import MESSAGE_LIMIT
 from memory import contains_words
 from reactions import contains_any
 from security import get_link_reason, handle_security
@@ -17,7 +23,6 @@ from text_utils import contains_loose_word
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-MEMORY_FILE = "memory.json"
 
 
 class FakeGuildPermissions:
@@ -70,8 +75,12 @@ class FakeClient:
         return self.log_channel
 
 
+_message_ids = itertools.count(1)
+
+
 class FakeMessage:
     def __init__(self, content, author, channel, guild_id=999):
+        self.id = next(_message_ids)
         self.content = content
         self.clean_content = content
         self.author = author
@@ -79,6 +88,7 @@ class FakeMessage:
         self.guild = SimpleNamespace(id=guild_id)
         self.mentions = []
         self.role_mentions = []
+        self.attachments = []
         self.deleted = False
 
     async def delete(self):
@@ -133,7 +143,7 @@ async def test_antispam():
     author = FakeAuthor(123, "Flooder")
     channel = FakeChannel(222, "spam-test")
 
-    for index in range(1, 6):
+    for index in range(1, MESSAGE_LIMIT + 1):
         message = FakeMessage(f"spam {index}", author, channel)
         await handle_antispam(message, client)
         print(f"Message {index} | Supprime: {message.deleted}")
@@ -176,20 +186,10 @@ def test_ambiance():
 
 
 async def main():
-    memory_backup = None
-
-    if os.path.exists(MEMORY_FILE):
-        with open(MEMORY_FILE, "r", encoding="utf-8") as file:
-            memory_backup = file.read()
-
     test_text_matching()
     test_ambiance()
     await test_security()
     await test_antispam()
-
-    if memory_backup is not None:
-        with open(MEMORY_FILE, "w", encoding="utf-8") as file:
-            file.write(memory_backup)
 
 
 if __name__ == "__main__":
