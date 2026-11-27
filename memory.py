@@ -157,7 +157,10 @@ def _trim_conversation_text(content):
     return content[:CONVERSATION_MEMORY_MAX_CHARS].rstrip() + "..."
 
 
-def _mentions_bot(message, bot_user):
+PERMANENT_MEMORY_MAX_ENTRIES = 50
+
+
+def mentions_bot(message, bot_user):
     if bot_user is None:
         return False
 
@@ -170,13 +173,16 @@ def _mentions_bot(message, bot_user):
     )
 
 
-def remember_permanent_misty_memory(message, bot_user):
+def remember_permanent_misty_memory(message, bot_user, addressed_to_bot=None):
     if str(message.author.id) != MISTY_USER_ID:
         return False
 
-    # Seulement quand Misty s'adresse au bot : sinon une phrase banale
-    # ("n'oublie pas ton sac") finissait en memoire permanente.
-    if not _mentions_bot(message, bot_user):
+    if addressed_to_bot is None:
+        addressed_to_bot = mentions_bot(message, bot_user)
+
+    # Seulement quand Misty s'adresse au bot (mention ou reponse) : sinon une
+    # phrase banale ("n'oublie pas ton sac") finissait en memoire permanente.
+    if not addressed_to_bot:
         return False
 
     content = message.clean_content.replace(f"@{bot_user.name}", "").strip()
@@ -184,18 +190,52 @@ def remember_permanent_misty_memory(message, bot_user):
     if not content or not contains_loose_any(content, PERMANENT_MEMORY_MARKERS):
         return False
 
+    return add_permanent_memory(content)
+
+
+# =========================
+# Memoire permanente (commande /memoire)
+# =========================
+
+def list_permanent_memory():
+    data = load_memory().get(MISTY_USER_ID, {})
+    return list(data.get("permanent_memory", []))
+
+
+def add_permanent_memory(content):
+    """Ajoute une entree. Renvoie False si vide ou deja presente."""
+    entry = _trim_conversation_text(content or "")
+    if not entry:
+        return False
+
     memory = load_memory()
     user_data = memory.setdefault(MISTY_USER_ID, get_default_user_memory())
     permanent_memory = user_data.setdefault("permanent_memory", [])
-    entry = _trim_conversation_text(content)
     normalized_entry = normalize_text(entry)
 
     if any(normalize_text(previous) == normalized_entry for previous in permanent_memory):
         return False
 
     permanent_memory.append(entry)
-    user_data["permanent_memory"] = permanent_memory[-50:]
+    user_data["permanent_memory"] = permanent_memory[-PERMANENT_MEMORY_MAX_ENTRIES:]
     save_memory(memory)
+    return True
+
+
+def remove_permanent_memory(number):
+    """Supprime l'entree numero `number` (a partir de 1). Renvoie le texte ou None."""
+    memory = load_memory()
+    user_data = memory.get(MISTY_USER_ID)
+    if not user_data:
+        return None
+
+    permanent_memory = user_data.get("permanent_memory", [])
+    if not 1 <= number <= len(permanent_memory):
+        return None
+
+    removed = permanent_memory.pop(number - 1)
+    save_memory(memory)
+    return removed
 
 
 def _reset_expired_behavior_memory(user_data):

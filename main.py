@@ -14,10 +14,15 @@ from antispam import (
 )
 from config import AI_COOLDOWN_BYPASS_USER_IDS, PURGE_AFTER_MAX_MESSAGES
 from status import start_status_loop
-from ai import handle_ai, reset_ai_state
+from ai import get_replied_bot_message, handle_ai, reset_ai_state
 from memory import (
+    MISTY_USER_ID,
+    add_permanent_memory,
     forget_user_memory,
+    list_permanent_memory,
+    mentions_bot,
     observe_message,
+    remove_permanent_memory,
     remember_bot_channel_message,
     remember_permanent_misty_memory,
     reset_all_memory_except_permanent,
@@ -81,6 +86,13 @@ def can_use_sendmsg(member):
 
 
 def can_use_admin_command(member):
+    return member.guild_permissions.administrator
+
+
+def can_manage_permanent_memory(member):
+    if member.id == int(MISTY_USER_ID):
+        return True
+
     return member.guild_permissions.administrator
 
 
@@ -320,6 +332,112 @@ async def purgeafter(interaction: discord.Interaction, message_id: str):
     )
 
 
+# =========================
+# /memoire : memoire permanente de Mistyxo
+# =========================
+
+memoire_group = app_commands.Group(
+    name="memoire",
+    description="Gere la memoire permanente de Mistybot (Misty et admins)."
+)
+
+MEMORY_LIST_LINE_MAX_CHARS = 180
+
+
+async def _check_memory_access(interaction: discord.Interaction):
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(
+            "Commande inutilisable ici.",
+            ephemeral=True
+        )
+        return False
+
+    if not can_manage_permanent_memory(interaction.user):
+        await interaction.response.send_message(
+            "Reserve a Misty et aux administrateurs.",
+            ephemeral=True
+        )
+        return False
+
+    return True
+
+
+def _format_memory_list(entries):
+    lines = [f"**Memoire permanente** ({len(entries)}) :"]
+
+    for number, entry in enumerate(entries, start=1):
+        if len(entry) > MEMORY_LIST_LINE_MAX_CHARS:
+            entry = entry[:MEMORY_LIST_LINE_MAX_CHARS].rstrip() + "..."
+        line = f"`{number}.` {entry}"
+
+        if len("\n".join(lines + [line])) > 1900:
+            lines.append(f"... et {len(entries) - number + 1} autre(s).")
+            break
+
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
+@memoire_group.command(name="voir", description="Affiche la memoire permanente.")
+async def memoire_voir(interaction: discord.Interaction):
+    if not await _check_memory_access(interaction):
+        return
+
+    entries = list_permanent_memory()
+    if not entries:
+        await interaction.response.send_message(
+            "La memoire permanente est vide.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.send_message(
+        _format_memory_list(entries),
+        ephemeral=True
+    )
+
+
+@memoire_group.command(name="ajouter", description="Ajoute une info a la memoire permanente.")
+@app_commands.describe(texte="Ce que Mistybot doit retenir")
+async def memoire_ajouter(interaction: discord.Interaction, texte: str):
+    if not await _check_memory_access(interaction):
+        return
+
+    if add_permanent_memory(texte):
+        message = "C'est retenu."
+    else:
+        message = "Rien d'ajoute : c'est vide ou deja en memoire."
+
+    await interaction.response.send_message(message, ephemeral=True)
+
+
+@memoire_group.command(name="supprimer", description="Supprime une info de la memoire permanente.")
+@app_commands.describe(numero="Numero affiche par /memoire voir")
+async def memoire_supprimer(interaction: discord.Interaction, numero: app_commands.Range[int, 1, 100]):
+    if not await _check_memory_access(interaction):
+        return
+
+    removed = remove_permanent_memory(numero)
+    if removed is None:
+        await interaction.response.send_message(
+            "Numero introuvable. Regarde la liste avec /memoire voir.",
+            ephemeral=True
+        )
+        return
+
+    if len(removed) > MEMORY_LIST_LINE_MAX_CHARS:
+        removed = removed[:MEMORY_LIST_LINE_MAX_CHARS].rstrip() + "..."
+
+    await interaction.response.send_message(
+        f"Supprime : {removed}",
+        ephemeral=True
+    )
+
+
+tree.add_command(memoire_group)
+
+
 @client.event
 async def on_ready():
     print(f"Bot connecté : {client.user}")
@@ -355,7 +473,14 @@ async def on_message(message):
 
     print(f"Message reçu : {message.author} -> {message.content}")
 
-    remember_permanent_misty_memory(message, client.user)
+    replied_bot_message = None
+    if not message.author.bot:
+        replied_bot_message = await get_replied_bot_message(message, client.user)
+    addressed_to_bot = (
+        mentions_bot(message, client.user) or replied_bot_message is not None
+    )
+
+    remember_permanent_misty_memory(message, client.user, addressed_to_bot)
     observe_ambiance(message)
 
     await observe_message(message, client.user, client)
@@ -366,7 +491,7 @@ async def on_message(message):
 
     await maybe_send_chat_remark(message)
     await handle_reactions(message)
-    await handle_ai(message, client.user, client)
+    await handle_ai(message, client.user, client, replied_bot_message)
 
 
 client.run(TOKEN)
