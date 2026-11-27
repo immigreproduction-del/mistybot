@@ -143,8 +143,8 @@ async def sendmsg(interaction: discord.Interaction, message: str):
     description="Envoie une image dans ce salon avec Mistybot."
 )
 @app_commands.describe(
-    image="Image a envoyer avec Mistybot",
-    message="Message optionnel a envoyer avec l'image"
+    image="Image à envoyer avec Mistybot",
+    message="Message optionnel à envoyer avec l'image"
 )
 async def sendimg(
     interaction: discord.Interaction,
@@ -194,7 +194,7 @@ async def sendimg(
         ai_content = sent_message.clean_content or message or ""
         if ai_content:
             ai_content += "\n"
-        ai_content += "[Image envoyee par Mistybot]"
+        ai_content += "[Image envoyée par Mistybot]"
         remember_bot_channel_message(interaction.channel.id, ai_content)
         reset_antispam_for_channel(interaction.channel.id)
     except discord.HTTPException:
@@ -205,26 +205,26 @@ async def sendimg(
         return
 
     await interaction.followup.send(
-        "Image envoyee.",
+        "Image envoyée.",
         ephemeral=True
     )
 
 
 @tree.command(
     name="forget",
-    description="Efface ta memoire personnelle.",
+    description="Efface ta mémoire personnelle.",
 )
 async def forget(interaction: discord.Interaction):
     forget_user_memory(interaction.user.id)
     await interaction.response.send_message(
-        "C'est oublie.",
+        "C'est oublié.",
         ephemeral=True
     )
 
 
 @tree.command(
     name="reset",
-    description="Remet Mistybot a zero sans effacer la memoire permanente de Mistyxo."
+    description="Remet Mistybot à zéro sans effacer la mémoire permanente de Mistyxo."
 )
 async def reset(interaction: discord.Interaction):
     if not interaction.guild or not isinstance(interaction.user, discord.Member):
@@ -236,7 +236,7 @@ async def reset(interaction: discord.Interaction):
 
     if not can_use_admin_command(interaction.user):
         await interaction.response.send_message(
-            "Commande reservee aux administrateurs.",
+            "Commande réservée aux administrateurs.",
             ephemeral=True
         )
         return
@@ -247,16 +247,16 @@ async def reset(interaction: discord.Interaction):
     reset_ai_state()
 
     await interaction.response.send_message(
-        "Mistybot a ete remis a zero. La memoire permanente de Mistyxo est intacte.",
+        "Mistybot a été remis à zéro. La mémoire permanente de Mistyxo est intacte.",
         ephemeral=True
     )
 
 
 @tree.command(
     name="purgeafter",
-    description="Supprime les messages envoyes apres un message precis."
+    description="Supprime les messages envoyés après un message précis."
 )
-@app_commands.describe(message_id="ID du message a partir duquel supprimer en dessous")
+@app_commands.describe(message_id="ID du message à partir duquel supprimer en dessous")
 async def purgeafter(interaction: discord.Interaction, message_id: str):
     if not interaction.guild or not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message(
@@ -299,7 +299,7 @@ async def purgeafter(interaction: discord.Interaction, message_id: str):
         return
     except discord.Forbidden:
         await interaction.response.send_message(
-            "Je n'ai pas acces a ce message.",
+            "Je n'ai pas accès à ce message.",
             ephemeral=True
         )
         return
@@ -321,13 +321,13 @@ async def purgeafter(interaction: discord.Interaction, message_id: str):
         return
     except discord.HTTPException:
         await interaction.followup.send(
-            "La purge a bloque cote Discord.",
+            "La purge a bloqué côté Discord.",
             ephemeral=True
         )
         return
 
     await interaction.followup.send(
-        f"{len(deleted_messages)} message(s) supprime(s).",
+        f"{len(deleted_messages)} message(s) supprimé(s).",
         ephemeral=True
     )
 
@@ -338,7 +338,7 @@ async def purgeafter(interaction: discord.Interaction, message_id: str):
 
 memoire_group = app_commands.Group(
     name="memoire",
-    description="Gere la memoire permanente de Mistybot (Misty et admins)."
+    description="Gère la mémoire permanente de Mistybot (Misty et admins)."
 )
 
 MEMORY_LIST_LINE_MAX_CHARS = 180
@@ -354,7 +354,7 @@ async def _check_memory_access(interaction: discord.Interaction):
 
     if not can_manage_permanent_memory(interaction.user):
         await interaction.response.send_message(
-            "Reserve a Misty et aux administrateurs.",
+            "Réservé à Misty et aux administrateurs.",
             ephemeral=True
         )
         return False
@@ -363,7 +363,7 @@ async def _check_memory_access(interaction: discord.Interaction):
 
 
 def _format_memory_list(entries):
-    lines = [f"**Memoire permanente** ({len(entries)}) :"]
+    lines = [f"**Mémoire permanente** ({len(entries)}) :"]
 
     for number, entry in enumerate(entries, start=1):
         if len(entry) > MEMORY_LIST_LINE_MAX_CHARS:
@@ -379,7 +379,7 @@ def _format_memory_list(entries):
     return "\n".join(lines)
 
 
-@memoire_group.command(name="voir", description="Affiche la memoire permanente.")
+@memoire_group.command(name="voir", description="Affiche la mémoire permanente.")
 async def memoire_voir(interaction: discord.Interaction):
     if not await _check_memory_access(interaction):
         return
@@ -387,7 +387,7 @@ async def memoire_voir(interaction: discord.Interaction):
     entries = list_permanent_memory()
     if not entries:
         await interaction.response.send_message(
-            "La memoire permanente est vide.",
+            "La mémoire permanente est vide.",
             ephemeral=True
         )
         return
@@ -398,7 +398,7 @@ async def memoire_voir(interaction: discord.Interaction):
     )
 
 
-@memoire_group.command(name="ajouter", description="Ajoute une info a la memoire permanente.")
+@memoire_group.command(name="ajouter", description="Ajoute une info à la mémoire permanente.")
 @app_commands.describe(texte="Ce que Mistybot doit retenir")
 async def memoire_ajouter(interaction: discord.Interaction, texte: str):
     if not await _check_memory_access(interaction):
@@ -407,13 +407,13 @@ async def memoire_ajouter(interaction: discord.Interaction, texte: str):
     if add_permanent_memory(texte):
         message = "C'est retenu."
     else:
-        message = "Rien d'ajoute : c'est vide ou deja en memoire."
+        message = "Rien d'ajouté : c'est vide ou déjà en mémoire."
 
     await interaction.response.send_message(message, ephemeral=True)
 
 
-@memoire_group.command(name="supprimer", description="Supprime une info de la memoire permanente.")
-@app_commands.describe(numero="Numero affiche par /memoire voir")
+@memoire_group.command(name="supprimer", description="Supprime une info de la mémoire permanente.")
+@app_commands.describe(numero="Numéro affiché par /memoire voir")
 async def memoire_supprimer(interaction: discord.Interaction, numero: app_commands.Range[int, 1, 100]):
     if not await _check_memory_access(interaction):
         return
@@ -421,7 +421,7 @@ async def memoire_supprimer(interaction: discord.Interaction, numero: app_comman
     removed = remove_permanent_memory(numero)
     if removed is None:
         await interaction.response.send_message(
-            "Numero introuvable. Regarde la liste avec /memoire voir.",
+            "Numéro introuvable. Regarde la liste avec /memoire voir.",
             ephemeral=True
         )
         return
@@ -430,7 +430,7 @@ async def memoire_supprimer(interaction: discord.Interaction, numero: app_comman
         removed = removed[:MEMORY_LIST_LINE_MAX_CHARS].rstrip() + "..."
 
     await interaction.response.send_message(
-        f"Supprime : {removed}",
+        f"Supprimé : {removed}",
         ephemeral=True
     )
 

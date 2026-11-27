@@ -70,7 +70,7 @@ async def log_security_action(client, message, reason, action):
 
     await send_log(
         client,
-        "Alerte securite",
+        "Alerte sécurité",
         description,
         discord.Color.red()
     )
@@ -94,7 +94,7 @@ async def log_security_raid(
 
 **Raison :** {reason}
 **Messages suspects :** {messages_count}
-**Salons touches :** {channels_count}
+**Salons touchés :** {channels_count}
 **Sanction :** {sanction_text}
 
 **Dernier salon :** {message.channel.mention}
@@ -104,7 +104,7 @@ async def log_security_raid(
 
     await send_log(
         client,
-        "Raid liens suspect",
+        "Raid de liens suspects",
         description,
         discord.Color.dark_red()
     )
@@ -116,7 +116,7 @@ async def log_verification_event(client, member, title, details):
 **Username :** `{member.name}`
 **ID :** `{member.id}`
 
-**Details :** {details}
+**Détails :** {details}
 """
 
     await send_log(
