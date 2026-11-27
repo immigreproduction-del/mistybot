@@ -185,7 +185,7 @@ async def handle_security(message: discord.Message, client):
             reason="Mot interdit"
         )
 
-        action = "message supprime"
+        action = "message supprimé"
         if timed_out:
             action += f" + timeout {FORBIDDEN_WORD_TIMEOUT_DAYS} jours"
 
@@ -254,7 +254,7 @@ async def handle_security(message: discord.Message, client):
             reason="Spam de liens/invitations dans plusieurs salons"
         )
 
-        action = "message supprime"
+        action = "message supprimé"
         if timed_out:
             action += " + timeout"
 
@@ -274,7 +274,7 @@ async def handle_security(message: discord.Message, client):
             client,
             message,
             reason,
-            "message supprime"
+            "message supprimé"
         )
         return True
 

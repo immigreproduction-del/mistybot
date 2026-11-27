@@ -110,14 +110,14 @@ async def send_verification_welcome(member, client):
         await log_verification_event(
             client,
             member,
-            "Salon verification introuvable",
-            f"ID configure : {VERIFICATION_CHANNEL_ID}"
+            "Salon vérification introuvable",
+            f"ID configuré : {VERIFICATION_CHANNEL_ID}"
         )
         return
 
     await channel.send(
         f"{member.mention}\n"
-        "Bonjour, c'est Mistybot, on fait une petite verification rapide pour être sur que tu n'es pas un bot :) "
+        "Bonjour, c'est Mistybot, on fait une petite vérification rapide pour être sûr que tu n'es pas un bot :) "
         "Rien de compliqué, ça ne prend que quelques secondes.",
         view=VerificationStartView()
     )
@@ -215,8 +215,8 @@ async def expire_verification_session(interaction, user_id, sent_message):
     await log_verification_event(
         interaction.client,
         interaction.user,
-        "Verification expiree",
-        "Session invalidee après timeout."
+        "Vérification expirée",
+        "Session invalidée après timeout."
     )
 
 
@@ -249,22 +249,22 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
 
         if role is None:
             await interaction.response.edit_message(
-                content="Role Membre introuvable. Previens un moderateur.",
+                content="Rôle Membre introuvable. Préviens un modérateur.",
                 view=None
             )
             await log_verification_event(
                 interaction.client,
                 interaction.user,
-                "Verification bloquee",
-                f"Role introuvable : {VERIFICATION_MEMBER_ROLE_NAME}"
+                "Vérification bloquée",
+                f"Rôle introuvable : {VERIFICATION_MEMBER_ROLE_NAME}"
             )
             return
 
         try:
-            await interaction.user.add_roles(role, reason="Verification captcha reussie")
+            await interaction.user.add_roles(role, reason="Vérification captcha réussie")
         except discord.Forbidden:
             await interaction.response.edit_message(
-                content="Je n'ai pas la permission d'ajouter le role Membre.",
+                content="Je n'ai pas la permission d'ajouter le rôle Membre.",
                 view=None
             )
             return
@@ -278,8 +278,8 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
         await log_verification_event(
             interaction.client,
             interaction.user,
-            "Verification reussie",
-            f"Role ajoute : {role.name}"
+            "Vérification réussie",
+            f"Rôle ajouté : {role.name}"
         )
         return
 
@@ -287,17 +287,17 @@ async def complete_verification(interaction, selected_answer, correct_answer, us
     failed_attempts_by_user[user_id] = failures
 
     if failures >= VERIFICATION_MAX_FAILURES:
-        content = "Mauvaise reponse. Trop d'échecs, envoi un message à un modérateur/admin"
+        content = "Mauvaise réponse. Trop d'échecs, envoie un message à un modérateur/admin."
     else:
         remaining = VERIFICATION_MAX_FAILURES - failures
-        content = f"Mauvaise reponse. Tu peux recommencer. Essais restants : {remaining}."
+        content = f"Mauvaise réponse. Tu peux recommencer. Essais restants : {remaining}."
 
     await interaction.response.edit_message(content=content, view=None)
     await log_verification_event(
         interaction.client,
         interaction.user,
-        "Verification échouée",
-        f"Echecs : {failures}/{VERIFICATION_MAX_FAILURES}"
+        "Vérification échouée",
+        f"Échecs : {failures}/{VERIFICATION_MAX_FAILURES}"
     )
 
 
@@ -306,7 +306,7 @@ class VerificationStartView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Commencer la verification",
+        label="Commencer la vérification",
         style=discord.ButtonStyle.primary,
         custom_id="mistybot:start_verification"
     )
