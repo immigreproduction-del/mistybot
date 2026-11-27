@@ -28,20 +28,57 @@ PERMANENT_MEMORY_MARKERS = [
 ]
 
 
-def load_memory():
+# La memoire est lue une seule fois depuis le disque, puis gardee en RAM.
+_memory_cache = None
+
+
+def _read_memory_file():
     if not os.path.exists(MEMORY_FILE):
         return {}
 
     try:
         with open(MEMORY_FILE, "r", encoding="utf-8") as file:
-            return json.load(file)
-    except:
+            data = json.load(file)
+        if isinstance(data, dict):
+            return data
+        raise ValueError("la racine du JSON n'est pas un objet")
+    except (OSError, ValueError) as error:
+        # Avant, un fichier illisible donnait {} et la sauvegarde suivante
+        # ecrasait toute la memoire. On met le fichier de cote a la place.
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        backup = f"{MEMORY_FILE}.corrupt-{stamp}"
+        try:
+            os.replace(MEMORY_FILE, backup)
+            print(f"memory.json illisible ({error}) : copie gardee dans {backup}")
+        except OSError as backup_error:
+            print(f"memory.json illisible ({error}), sauvegarde impossible : {backup_error}")
         return {}
 
 
+def load_memory():
+    global _memory_cache
+
+    if _memory_cache is None:
+        _memory_cache = _read_memory_file()
+
+    return _memory_cache
+
+
 def save_memory(memory):
-    with open(MEMORY_FILE, "w", encoding="utf-8") as file:
+    global _memory_cache
+    _memory_cache = memory
+
+    # Ecriture atomique : fichier temporaire puis remplacement. Un crash
+    # pendant l'ecriture laisse l'ancien memory.json intact.
+    directory = os.path.dirname(os.path.abspath(MEMORY_FILE))
+    temp_path = os.path.join(directory, ".memory.json.tmp")
+
+    with open(temp_path, "w", encoding="utf-8") as file:
         json.dump(memory, file, indent=4, ensure_ascii=False)
+        file.flush()
+        os.fsync(file.fileno())
+
+    os.replace(temp_path, MEMORY_FILE)
 
 
 def get_default_user_memory():
@@ -120,11 +157,31 @@ def _trim_conversation_text(content):
     return content[:CONVERSATION_MEMORY_MAX_CHARS].rstrip() + "..."
 
 
-def remember_permanent_misty_memory(user_id, content):
-    if str(user_id) != MISTY_USER_ID:
+def _mentions_bot(message, bot_user):
+    if bot_user is None:
         return False
 
-    if not contains_loose_any(content, PERMANENT_MEMORY_MARKERS):
+    if bot_user in message.mentions:
+        return True
+
+    return any(
+        role.name.lower() == bot_user.name.lower()
+        for role in message.role_mentions
+    )
+
+
+def remember_permanent_misty_memory(message, bot_user):
+    if str(message.author.id) != MISTY_USER_ID:
+        return False
+
+    # Seulement quand Misty s'adresse au bot : sinon une phrase banale
+    # ("n'oublie pas ton sac") finissait en memoire permanente.
+    if not _mentions_bot(message, bot_user):
+        return False
+
+    content = message.clean_content.replace(f"@{bot_user.name}", "").strip()
+
+    if not content or not contains_loose_any(content, PERMANENT_MEMORY_MARKERS):
         return False
 
     memory = load_memory()
@@ -523,8 +580,8 @@ def get_permanent_memory_context(user_id):
         return ""
 
     lines = [
-        "MÃ©moire permanente transmise par Mistyxo :",
-        "Ces informations sont Ã  conserver durablement et Ã  utiliser si elles sont pertinentes.",
+        "Mémoire permanente transmise par Mistyxo :",
+        "Ces informations sont à conserver durablement et à utiliser si elles sont pertinentes.",
     ]
     lines.extend(f"- {entry}" for entry in permanent_memory)
     return "\n".join(lines)
